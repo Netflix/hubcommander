@@ -1,0 +1,2 @@
+
+SLACK_CLIENT = None

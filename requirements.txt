@@ -1,0 +1,6 @@
+tabulate
+validators
+duo_client
+
+# For KMS (if you are using it)
+boto3

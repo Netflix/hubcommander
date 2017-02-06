@@ -1,0 +1,13 @@
+docs/
+venv*
+.idea
+.git/
+.gitignore
+.dockerignore
+.DS_Store
+Dockerfile
+README.md
+basic_install.sh
+build_docker.sh
+AUTHORS
+.gitkeep

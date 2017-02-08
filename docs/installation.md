@@ -17,7 +17,7 @@ release [0.3.0](https://github.com/slackhq/python-rtmbot/releases/tag/0.3.0)). P
 python-rtmbot before continuing to install HubCommander.  
 
 Note: Some work will need to be performed to make it compatible with the latest release of the rtmbot, 
-which has some breaking changes (see issue ... for details).
+which has some breaking changes (see https://github.com/Netflix/hubcommander/issues/1 for details).
 
 The python-rtmbot typically operates by placing a plugin in the `plugins` directory.
 

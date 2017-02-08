@@ -22,7 +22,7 @@ At a minimum, you will need to have the following:
 * A GitHub organization
 * A GitHub bot user with ownership level privileges
 
-A Docker image is also available to help get up and running quick.
+A Docker image is also available to help get up and running quickly.
 
 Features
 -------------

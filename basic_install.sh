@@ -45,31 +45,38 @@ echo "[+] Completed extracted RTM bot"
 
 # Create the virtualenvs:
 echo "[-->] Creating venv in ${RTM_PATH}..."
-pyvenv venv
-source venv/bin/activate
-echo "[+] Created venv"
 
-# Install the dependencies for the rtmbot:
-echo "[-->] Installing rtmbot's dependencies..."
-pip install wheel
-pip install -r requirements.txt
-echo "[+] Completed installing rtmbot dependencies."
+if command -v pyenv >/dev/null 2>&1 ; then
+  pyvenv venv
+  source venv/bin/activate
+  echo "[+] Created venv"
 
-# Install HubCommander
-echo "[-->] Moving HubCommander to the plugins dir..."
-mv ../hubcommander/* plugins/
-rm -Rf ../hubcommander
-echo "[+] Completed moving HubCommander to the plugins dir."
+  # Install the dependencies for the rtmbot:
+  echo "[-->] Installing rtmbot's dependencies..."
+  pip install wheel
+  pip install -r requirements.txt
+  echo "[+] Completed installing rtmbot dependencies."
 
-# Install the dependencies for HubCommander:
-echo "[-->] Installing HubCommander' dependencies..."
-pip install -r plugins/requirements.txt
-echo "[+] Completed installing HubCommander' dependencies."
+  # Install HubCommander
+  echo "[-->] Moving HubCommander to the plugins dir..."
+  mv ../hubcommander/* plugins/
+  rm -Rf ../hubcommander
+  echo "[+] Completed moving HubCommander to the plugins dir."
 
-echo "-------- What's left to do? --------"
-echo "At this point, you will need to create a 'rtmbot.conf' file as per the instructions for the rtmbot."
-echo "Additionally, you will need to perform all of the remaining configuration that is required for"
-echo "HubCommander. Please review the instructions for details."
+  # Install the dependencies for HubCommander:
+  echo "[-->] Installing HubCommander' dependencies..."
+  pip install -r plugins/requirements.txt
+  echo "[+] Completed installing HubCommander' dependencies."
 
-echo
-echo "DONE!"
+  echo "-------- What's left to do? --------"
+  echo "At this point, you will need to create a 'rtmbot.conf' file as per the instructions for the rtmbot."
+  echo "Additionally, you will need to perform all of the remaining configuration that is required for"
+  echo "HubCommander. Please review the instructions for details."
+
+  echo
+  echo "DONE!"
+else
+  echo "pyvenv is not installed. Install pyvenv to continue. Aborting."
+  exit 1;
+fi
+

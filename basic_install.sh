@@ -46,7 +46,7 @@ echo "[+] Completed extracted RTM bot"
 # Create the virtualenvs:
 echo "[-->] Creating venv in ${RTM_PATH}..."
 
-if command -v pyenv >/dev/null 2>&1 ; then
+if command -v pyvenv >/dev/null 2>&1 ; then
   pyvenv venv
   source venv/bin/activate
   echo "[+] Created venv"

@@ -47,15 +47,30 @@ echo "[+] Completed extracted RTM bot"
 echo "[-->] Creating venv in ${RTM_PATH}..."
 
 if command -v pyvenv >/dev/null 2>&1 ; then
-  pyvenv venv
-  source venv/bin/activate
-  echo "[+] Created venv"
 
+  PYTHON_VERSION=`python --version 2>&1 | grep -i continuum`
+  if [[ $PYTHON_VERSION != "" ]]; then
+      echo "[+] Conda installation detected ..."
+      pyvenv venv --without-pip
+      source venv/bin/activate
+
+
+      echo "[-->] Installing PIP in venv..."
+      curl -O https://bootstrap.pypa.io/get-pip.py
+      python get-pip.py
+      echo "[+] PIP Installed"
+  else
+      pyvenv venv
+      source venv/bin/activate
+  fi
+
+  echo "[+] Created venv"
   # Install the dependencies for the rtmbot:
   echo "[-->] Installing rtmbot's dependencies..."
   pip install wheel
   pip install -r requirements.txt
   echo "[+] Completed installing rtmbot dependencies."
+
 
   # Install HubCommander
   echo "[-->] Moving HubCommander to the plugins dir..."

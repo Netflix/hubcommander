@@ -53,3 +53,4 @@ boto.cfg
 *.crt
 *.key
 
+python-rtmbot-*/

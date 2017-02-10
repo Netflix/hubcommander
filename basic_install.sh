@@ -54,7 +54,6 @@ if command -v pyvenv >/dev/null 2>&1 ; then
       pyvenv venv --without-pip
       source venv/bin/activate
 
-
       echo "[-->] Installing PIP in venv..."
       curl -O https://bootstrap.pypa.io/get-pip.py
       python get-pip.py

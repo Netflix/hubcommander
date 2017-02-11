@@ -60,9 +60,7 @@ def send_info(channel, text, markdown=False):
     if markdown:
         attachment["mrkdwn_in"] = ["text"]
 
-    say(channel, [
-        attachment
-    ])
+    say(channel, [attachment])
 
 
 def send_success(channel, text, markdown=False):
@@ -109,10 +107,25 @@ def preformat_args(text):
 
 
 def preformat_args_with_spaces(text, num_quoted):
+    """
+    This method will not only strip out the things that need to be stripped out, but it will also
+    ensure that double-quoted objects are extracted as independent arguments.
+
+    For example, if the text passed in was:
+    !SetDescription Netflix HubCommander "A Slack bot for GitHub management", we would want to get back:
+    a list that contains: ["netflix", "hubcommander", '"A Slack bot for GitHub management"']
+
+    The `num_quoted` param refers to the number of double-quoted parameters are required for the command.
+    For the example above, there is one double-quoted parameter required for the command.
+
+    :param text:
+    :param num_quoted:
+    :return:
+    """
     working = text.replace('[', '').replace(']', '') \
         .replace('{', '').replace('}', '') \
         .replace(u'\u201C', "\"").replace(u'\u201D', "\"") \
-        .replace(u'\u2018', "\'").replace(u'\u2019', "\'")  # Slack's Bullshit around quotes..
+        .replace(u'\u2018', "\'").replace(u'\u2019', "\'")  # macOS's Bullshit around quotes..
 
     # Check if there are 0 or an un-even number of quotation marks.  If so, then exit:
     if working.count('\"') < 2:
@@ -121,7 +134,8 @@ def preformat_args_with_spaces(text, num_quoted):
     if working.count('\"') % 2 != 0:
         raise SystemExit()
 
-    # Get all the quoted things:
+    # Get all the quoted things: (We only really care about the double-quotes, since they are related to command
+    # syntax.)
     quotes = working.split('"')[1::2]
     if len(quotes) != num_quoted:
         raise SystemExit()
@@ -134,6 +148,11 @@ def preformat_args_with_spaces(text, num_quoted):
 
     # Get the space delimited commands:
     working = working.lower()
+
+    # Remove extra dangling whitespaces (there must be 1 dangling space at the end for the split operation to operate):
+    if num_quoted > 1:
+        working = working[0:-(num_quoted - 1)]
+
     space_delimited = working.split(" ")[1:-1]
     # The -1 above is needed, because there will be additional empty items on the list due to the space
     # after the other positional arguments :/

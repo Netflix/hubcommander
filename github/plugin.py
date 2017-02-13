@@ -822,7 +822,6 @@ class GitHubPlugin(BotCommander):
                                        "<Repo> <State>```\n"
                                        "No special characters or spaces in the variables. \n"
                                        "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
-                                       "This will first check for the presence of the repo in the org before creating it."
                       .format(user_data["name"]), markdown=True)
             return
 

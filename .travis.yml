@@ -1,8 +1,25 @@
-sudo: true
-install: ./build_docker.sh
-script: ./publish_via_travis.sh
+sudo: required
+
+language: python
+
+python:
+  - "3.5"
+  - "3.6"
+
+install:
+  - pip install -e .
+  - pip install ."[tests]"
+
+before_script:
+  - py.test -s tests
+
+script:
+  - ./build_docker.sh
+  - ./publish_via_travis.sh
+
 services:
   - docker
+
 env:
   global:
     - BUILD_TAG=$TRAVIS_TAG

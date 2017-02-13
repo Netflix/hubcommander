@@ -22,6 +22,20 @@
 
 # This will build a docker image of HubCommander.
 
+if [ -z ${BUILD_TAG} ]; then
+  BUILD_TAG="latest"
+fi
+
+# If this is running in Travis, AND the Python version IS NOT 3.5, then don't build
+# the Docker image:
+if [ $TRAVIS ]; then
+    PYTHON_VERSION=$( python --version )
+    if [[ $PYTHON_VERSION != *"3.5"* ]]; then
+        echo "This only builds Docker images in the Python 3.5 Travis job"
+        exit 0
+    fi
+fi
+
 export RTM_VERSION="0.3.0"
 export RTM_PATH="python-rtmbot-${RTM_VERSION}"
 
@@ -37,9 +51,6 @@ echo "[+] Completed download"
 # Build the Docker image... the Dockerfile will do the rest:
 echo "[-->] Now building the Docker image..."
 
-if [ -z ${BUILD_TAG} ]; then
-  BUILD_TAG="latest"
-fi
 
 # Build that Docker image...
 docker build  -t netflixoss/hubcommander:${BUILD_TAG} --rm=true . --build-arg RTM_VERSION=${RTM_VERSION}

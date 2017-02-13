@@ -54,3 +54,5 @@ boto.cfg
 *.key
 
 python-rtmbot-*/
+
+.cache/

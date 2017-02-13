@@ -14,15 +14,20 @@ import bot_components
 WORKING_COLOR = "#439FE0"
 
 
-def say(channel, attachments):
+def say(channel, attachments, text=None):
     """
     Sends a message (with attachments) to Slack. Use the send_* methods instead.
     :param channel:
     :param attachments:
+    :param raw:
     :return:
     """
-    bot_components.SLACK_CLIENT.api_call("chat.postMessage", channel=channel, text=" ",
-                                         attachments=json.dumps(attachments), as_user=True)
+    if text is None:
+        bot_components.SLACK_CLIENT.api_call("chat.postMessage", channel=channel, text=" ",
+                                             attachments=json.dumps(attachments), as_user=True)
+    else:
+        bot_components.SLACK_CLIENT.api_call("chat.postMessage", channel=channel, text=text,
+                                             attachments=json.dumps(attachments), as_user=True)
 
 
 def send_error(channel, text, markdown=False):
@@ -82,6 +87,15 @@ def send_success(channel, text, markdown=False):
 
     say(channel, [attachment])
 
+def send_raw(channel, text):
+    """
+    Sends an "info" message to Slack.
+    :param channel:
+    :param text:
+    :return:
+    """
+
+    say(channel, None, text)
 
 def get_user_data(data):
     """

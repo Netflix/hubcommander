@@ -27,7 +27,7 @@ RUN \
   /bin/bash -c "source /venv/bin/activate && pip install --upgrade pip" && \
   /bin/bash -c "source /venv/bin/activate && pip install wheel" && \
   /bin/bash -c "source /venv/bin/activate && pip install -r /hubcommander/requirements.txt" && \
-  /bin/bash -c "source /venv/bin/activate && pip install -r /hubcommander/plugins/requirements.txt" && \
+  /bin/bash -c "source /venv/bin/activate && pip install /hubcommander/plugins" && \
 
   # The launcher script:
   mv /hubcommander/plugins/launch_in_docker.sh / && chmod +x /launch_in_docker.sh && \

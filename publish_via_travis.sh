@@ -20,15 +20,31 @@
 #
 ################################################################################
 
+# If this is running in Travis, AND the Python version IS NOT 3.5, then don't build
+# the Docker image:
+if [ $TRAVIS ]; then
+    PYTHON_VERSION=$( python --version )
+    if [[ $PYTHON_VERSION != *"3.5"* ]]; then
+        echo "This only publishes Docker images in the Python 3.5 Travis job"
+        exit 0
+    fi
+else
+    echo "This can only be run from Travis CI. Exiting..."
+    exit -1
+fi
 
 # Complete the Docker tasks (only if this is a tagged release):
 if [ -z ${TRAVIS_TAG} ]; then
+  echo "Not publishing to Docker Hub, because this is not a tagged release."
   exit 0
 fi
 
+echo "TAGGED RELEASE: ${TRAVIS_TAG}, publishing to Docker Hub..."
 
 docker tag netflixoss/hubcommander:${TRAVIS_TAG} netflixoss/hubcommander:latest
 docker images
 docker login -u=${dockerhubUsername} -p=${dockerhubPassword}
 docker push netflixoss/hubcommander:$TRAVIS_TAG
 docker push netflixoss/hubcommander:latest
+
+echo "Completed publishing to Docker Hub."

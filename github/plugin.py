@@ -789,7 +789,7 @@ class GitHubPlugin(BotCommander):
 
     def list_pull_requests(self, data, user_data):
         """
-        Sets the default branch of a repo.
+        List the Pull Requests for a repo.
 
         Command is as follows: !listprs <organization> <repo> <state>
         :param data:

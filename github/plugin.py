@@ -855,6 +855,9 @@ class GitHubPlugin(BotCommander):
         # Grab all PRs [All states]
         pull_requests = self.get_repo_prs(data, user_data, reponame, real_org, state)
         if not (pull_requests):
+            if isinstance(pull_requests, list):
+                send_info(data["channel"],
+                           "@{}: No matching pull requests were found in *{}*.".format(user_data["name"], reponame))
             return
 
         headers = ["#PR", "Title", "Opened by", "Assignee", "State"]

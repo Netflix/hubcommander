@@ -72,6 +72,7 @@ class GitHubPlugin(BotCommander):
                 "func": self.list_pull_requests,
                 "user_data_required": True,
                 "help": "List the Pull Requests for a repo.",
+                "permitted_states": ["open", "closed", "all"],
                 "enabled": True
             }
 
@@ -810,11 +811,21 @@ class GitHubPlugin(BotCommander):
             # Check that we can use this org:
             real_org = self.org_lookup[args["org"]][0]
             reponame = extract_repo_name(args["repo"])
-            state = args["state"]
 
-        except KeyError as _:
-            send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
-                       .format(user_data["name"]), markdown=True)
+            #Check if the sent state is permitted
+            state = args["state"]
+            if state not in self.commands["!ListPRs"]["permitted_states"]:
+                raise KeyError("PRStates")
+
+        except KeyError as ke:
+            if "PRStates" in str(ke):
+                s_str = " or ".join(["`{perm_state}`".format(perm_state=perm_state)
+                                     for perm_state in self.commands["!ListPRs"]["permitted_states"]])
+                send_error(data["channel"], '@{}: Invalid state sent in.  States must be {perm_states}.'
+                           .format(user_data["name"], perm_states=s_str), markdown=True)
+            else:
+                send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
+                           .format(user_data["name"]), markdown=True)
             return
 
         except SystemExit as _:
@@ -839,7 +850,7 @@ class GitHubPlugin(BotCommander):
         if not (repo_data):
             send_error(data["channel"],
                        "@{}: This repository does not exist in {}.".format(user_data["name"], real_org))
-            return False
+            return
 
         # Grab all PRs [All states]
         pull_requests = self.get_repo_prs(data, user_data, reponame, real_org, state)

@@ -14,7 +14,7 @@ import validators
 from tabulate import tabulate
 
 from bot_components.bot_classes import BotCommander
-from bot_components.slack_comm import send_info, send_success, send_error, preformat_args, preformat_args_with_spaces, \
+from bot_components.slack_comm import send_info, send_success, send_error, send_raw, preformat_args, preformat_args_with_spaces, \
     extract_repo_name
 from github.config import *
 
@@ -66,7 +66,16 @@ class GitHubPlugin(BotCommander):
                 "user_data_required": True,
                 "help": "Sets the default branch for a repo.",
                 "enabled": True
+            },
+            "!ListPRs": {
+                "command": "!ListPRs",
+                "func": self.list_pull_requests,
+                "user_data_required": True,
+                "help": "List the Pull Requests for a repo.",
+                "permitted_states": ["open", "closed", "all"],
+                "enabled": True
             }
+
         }
         self.token = None
 
@@ -565,6 +574,23 @@ class GitHubPlugin(BotCommander):
 
         return None
 
+    def get_repo_prs(self, data, user_data, reponame, real_org, state, **kwargs):
+        try:
+
+            return self.get_repo_pull_requests_http(reponame, real_org, state, **kwargs)
+
+        except requests.exceptions.RequestException as re:
+            send_error(data["channel"],
+                       "@{}: Problem encountered while getting pull requests from the repository.\n"
+                       "The response code from GitHub was: {}".format(user_data["name"], str(re)))
+            return False
+
+        except Exception as e:
+            send_error(data["channel"],
+                       "@{}: Problem encountered while parsing the response.\n"
+                       "Here are the details: {}".format(user_data["name"], str(e)))
+            return False
+
     def get_github_user(self, github_id):
         headers = {
             'Authorization': 'token {}'.format(self.token),
@@ -611,6 +637,32 @@ class GitHubPlugin(BotCommander):
         )
 
         if response.status_code != 200:
+            message = 'An error was encountered communicating with GitHub: Status Code: {}' \
+                .format(response.status_code)
+            raise requests.exceptions.RequestException(message)
+
+    def get_repo_pull_requests_http(self, repo, org, state, **kwargs):
+        """
+        List pull requests associated with a repo.
+
+        :param repo:
+        :param org:
+        :param state:
+        :param kwargs:
+        :return:
+        """
+        headers = {
+            'Authorization': 'token {}'.format(self.token),
+            'Accept': GITHUB_VERSION
+        }
+
+        api_part = 'repos/{}/{}/pulls?state={}'.format(org, repo, state)
+
+        response = requests.get('{}{}'.format(GITHUB_URL, api_part), headers=headers, timeout=10)
+
+        if response.status_code == 200:
+            return response.json()
+        else:
             message = 'An error was encountered communicating with GitHub: Status Code: {}' \
                 .format(response.status_code)
             raise requests.exceptions.RequestException(message)
@@ -735,3 +787,84 @@ class GitHubPlugin(BotCommander):
 
         if response.status_code != 200:
             raise ValueError('GitHub Problem: Adding to team, status code: {}'.format(response.status_code))
+
+    def list_pull_requests(self, data, user_data):
+        """
+        List the Pull Requests for a repo.
+
+        Command is as follows: !listprs <organization> <repo> <state>
+        :param data:
+        :return:
+        """
+        try:
+            parser = argparse.ArgumentParser()
+            parser.add_argument('org', type=str)
+            parser.add_argument('repo', type=str)
+            parser.add_argument('state', type=str)
+
+            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
+            if len(unknown) > 0:
+                raise SystemExit()
+
+            args = vars(args)
+
+            # Check that we can use this org:
+            real_org = self.org_lookup[args["org"]][0]
+            reponame = extract_repo_name(args["repo"])
+
+            #Check if the sent state is permitted
+            state = args["state"]
+            if state not in self.commands["!ListPRs"]["permitted_states"]:
+                raise KeyError("PRStates")
+
+        except KeyError as ke:
+            if "PRStates" in str(ke):
+                s_str = " or ".join(["`{perm_state}`".format(perm_state=perm_state)
+                                     for perm_state in self.commands["!ListPRs"]["permitted_states"]])
+                send_error(data["channel"], '@{}: Invalid state sent in.  States must be {perm_states}.'
+                           .format(user_data["name"], perm_states=s_str), markdown=True)
+            else:
+                send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
+                           .format(user_data["name"]), markdown=True)
+            return
+
+        except SystemExit as _:
+            send_info(data["channel"], "@{}: `!ListPRs` usage is:\n```!ListPRs <OrgThatHasRepo> "
+                                       "<Repo> <State>```\n"
+                                       "No special characters or spaces in the variables. \n"
+                                       "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
+                      .format(user_data["name"]), markdown=True)
+            return
+
+        # Auth?
+        if self.commands["!ListPRs"].get("auth"):
+            if not self.commands["!ListPRs"]["auth"]["plugin"].authenticate(
+                    data, user_data, **self.commands["!ListPRs"]["auth"]["kwargs"]):
+                return
+
+        # Output that we are doing work:
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+
+        # Check that the repo exists:
+        repo_data = self.check_gh_for_existing_repo(reponame, real_org)
+        if not (repo_data):
+            send_error(data["channel"],
+                       "@{}: This repository does not exist in {}.".format(user_data["name"], real_org))
+            return
+
+        # Grab all PRs [All states]
+        pull_requests = self.get_repo_prs(data, user_data, reponame, real_org, state)
+        if not (pull_requests):
+            if isinstance(pull_requests, list):
+                send_info(data["channel"],
+                           "@{}: No matching pull requests were found in *{}*.".format(user_data["name"], reponame))
+            return
+
+        headers = ["#PR", "Title", "Opened by", "Assignee", "State"]
+
+        rows = []
+        for pr in pull_requests:
+            assignee = pr['assignee']['login'] if pr['assignee'] is not None else '-'
+            rows.append([pr['number'],pr['title'], pr['user']['login'], assignee,pr['state'].title()])
+        # Done:
+        send_raw(data["channel"], text="Repository: *{}* \n\n```{}```".format(reponame, tabulate(rows, headers=headers, tablefmt='orgtbl')))

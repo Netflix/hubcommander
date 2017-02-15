@@ -7,6 +7,12 @@ MAINTAINER NetflixOSS <netflixoss@netflix.com>
 ARG RTM_VERSION
 ADD python-rtmbot-${RTM_VERSION}.tar.gz /
 
+RUN \
+  # Install Python:
+  apt-get update && \
+  apt-get upgrade -y && \
+  apt-get install python3 python3-venv nano -y
+
 # Add all the other stuff to the plugins:
 COPY / /python-rtmbot-${RTM_VERSION}/plugins
 
@@ -14,11 +20,6 @@ COPY / /python-rtmbot-${RTM_VERSION}/plugins
 RUN \
   # Rename the rtmbot:
   mv /python-rtmbot-${RTM_VERSION} /hubcommander && \
-
-  # Install Python:
-  apt-get update && \
-  apt-get upgrade -y && \
-  apt-get install python3 python3-venv nano -y && \
 
   # Set up the VENV:
   pyvenv /venv && \
@@ -31,7 +32,10 @@ RUN \
 
   # The launcher script:
   mv /hubcommander/plugins/launch_in_docker.sh / && chmod +x /launch_in_docker.sh && \
-  rm /hubcommander/plugins/python-rtmbot-${RTM_VERSION}.tar.gz
+  rm /hubcommander/plugins/python-rtmbot-${RTM_VERSION}.tar.gz && \
+
+  # Must remove setup.py to prevent rtmbot from complaining...
+  rm /hubcommander/plugins/setup.py
 
 # DEFINE YOUR ENV VARS FOR SECRETS HERE:
 ENV SLACK_TOKEN="REPLACEMEINCMDLINE" \

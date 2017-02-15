@@ -432,7 +432,9 @@ class GitHubPlugin(BotCommander):
             return
 
         # All done!
-        message = "@{}: The new repo: {} has been created in {}.\n\n".format(user_data["name"], repo_to_add, real_org)
+        message = "@{}: The new repo: {} has been created in {}.\n".format(user_data["name"], repo_to_add, real_org)
+        message += "You can access the repo at: https://github.com/{org}/{repo}\n".format(org=real_org,
+                                                                                          repo=repo_to_add)
 
         visibility = "PRIVATE" if visibility else "PUBLIC"
 

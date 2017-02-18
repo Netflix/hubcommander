@@ -79,8 +79,12 @@ if command -v pyvenv >/dev/null 2>&1 ; then
   # Install the dependencies for HubCommander:
   echo "[-->] Installing HubCommander' dependencies..."
   pip install plugins/
+
   # Need to delete the "setup.py" file because it interferes with the rtmbot:
   rm -f plugins/setup.py
+  # Need to delete the "tests/" directory, because it also interferes with the rtmbot:
+  rm -Rf plugins/tests
+
   echo "[+] Completed installing HubCommander' dependencies."
 
   echo "-------- What's left to do? --------"

@@ -814,7 +814,7 @@ class GitHubPlugin(BotCommander):
             real_org = self.org_lookup[args["org"]][0]
             reponame = extract_repo_name(args["repo"])
 
-            #Check if the sent state is permitted
+            # Check if the sent state is permitted
             state = args["state"]
             if state not in self.commands["!ListPRs"]["permitted_states"]:
                 raise KeyError("PRStates")
@@ -831,11 +831,14 @@ class GitHubPlugin(BotCommander):
             return
 
         except SystemExit as _:
+            s_str = " or ".join(["`{perm_state}`".format(perm_state=perm_state)
+                                 for perm_state in self.commands["!ListPRs"]["permitted_states"]])
             send_info(data["channel"], "@{}: `!ListPRs` usage is:\n```!ListPRs <OrgThatHasRepo> "
                                        "<Repo> <State>```\n"
+                                       "`<State>` must one of: {perm_states}\n"
                                        "No special characters or spaces in the variables. \n"
                                        "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
-                      .format(user_data["name"]), markdown=True)
+                      .format(user_data["name"], perm_states=s_str), markdown=True)
             return
 
         # Auth?

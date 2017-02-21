@@ -131,7 +131,7 @@ class TravisPlugin(BotCommander):
 
             travis_data = self.look_for_repo(which, repo_result)
             if not travis_data:
-                send_error(data["channel"], "@{}: Couldn't find the repo in Travis for some reason...:\n\n".format(
+                send_error(data["channel"], "@{}: Couldn't find the repo in Travis for some reason...\n\n".format(
                     user_data["name"]))
                 return
 
@@ -205,8 +205,8 @@ class TravisPlugin(BotCommander):
         :param repo_dict:
         :return:
         """
-        result = requests.post("{base}/repo/{repo}/enable".format(base=TRAVIS_URLS[which],
-                                                                  repo=repo_dict["full_name"].replace("/", "%2F")),
+        result = requests.post("{base}/repo/{repo}/activate".format(base=TRAVIS_URLS[which],
+                                                                    repo=repo_dict["full_name"].replace("/", "%2F")),
                                headers=self._make_headers(which))
 
         if result.status_code != 200:

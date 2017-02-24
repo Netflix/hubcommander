@@ -34,9 +34,11 @@ Features
 -------------
 Out of the box, HubCommander has the following GitHub features:
 * Repository creation
+* Repository deletion
 * Repository description and website modification
 * Granting outside collaborators specific permissions to repositories
 * Repository default branch modification
+* Repository PR listing
 
 HubCommander also features the ability to:
 * Enable Travis CI on a GitHub repo

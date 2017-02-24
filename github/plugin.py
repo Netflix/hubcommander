@@ -43,8 +43,8 @@ class GitHubPlugin(BotCommander):
                 "func": self.add_outside_collab_command,
                 "user_data_required": True,
                 "help": "Adds an outside collaborator to a specific repository in a specific GitHub organization.",
-                "permitted_permissions": ["push", "pull"],   # To grant admin, add this to the config for this command_plugins!
-                "enabled": True
+                "permitted_permissions": ["push", "pull"],   # To grant admin, add this to the config for
+                "enabled": True                              # this command in the config.py.
             },
             "!SetDescription": {
                 "command": "!SetDescription",
@@ -65,7 +65,7 @@ class GitHubPlugin(BotCommander):
                 "func": self.set_default_branch_command,
                 "user_data_required": True,
                 "help": "Sets the default branch for a repo.",
-                "enabled": True
+                "enabled": True     # It is HIGHLY recommended you have auth enabled for this!!
             },
             "!ListPRs": {
                 "command": "!ListPRs",
@@ -74,6 +74,13 @@ class GitHubPlugin(BotCommander):
                 "help": "List the Pull Requests for a repo.",
                 "permitted_states": ["open", "closed", "all"],
                 "enabled": True
+            },
+            "!DeleteRepo": {
+                "command": "!DeleteRepo",
+                "func": self.delete_repo_command,
+                "user_data_required": True,
+                "help": "Delete a GitHub repository.",
+                "enabled": True     # It is HIGHLY recommended you have auth enabled for this!!
             }
 
         }
@@ -452,6 +459,81 @@ class GitHubPlugin(BotCommander):
 
         send_success(data["channel"], message)
 
+    def delete_repo_command(self, data, user_data):
+        """
+        Deletes a repository.
+
+        Command is as follows: !deleterepo <repo> <organization>
+        :param data:
+        :return:
+        """
+        try:
+            parser = argparse.ArgumentParser()
+            parser.add_argument('repo', type=str)
+            parser.add_argument('org', type=str)
+
+            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
+            if len(unknown) > 0:
+                raise SystemExit()
+
+            args = vars(args)
+
+            repo_to_remove = args["repo"]
+
+            # Check that we can use this org:
+            real_org = self.org_lookup[args["org"]][0]
+
+        except KeyError as _:
+            send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
+                       .format(user_data["name"]), markdown=True)
+            return
+
+        except SystemExit as _:
+            send_info(data["channel"], "@{}: `!DeleteRepo` usage is:\n```!DeleteRepo <RepoName> "
+                                       "<GitHubOrgAliasToPutTheRepoInToHere>```\nNo special characters or spaces in the "
+                                       "variables.  Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
+                                       "This will first check for the presence of the repo in the org before creating it."
+                      .format(user_data["name"]), markdown=True)
+            return
+
+        # Auth?
+        if self.commands["!DeleteRepo"].get("auth"):
+            if not self.commands["!DeleteRepo"]["auth"]["plugin"].authenticate(
+                    data, user_data, **self.commands["!DeleteRepo"]["auth"]["kwargs"]):
+                return
+
+        # Output that we are doing work:
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+
+        # Check if the repo already exists:
+        try:
+            result = self.check_gh_for_existing_repo(repo_to_remove, real_org)
+
+            if not result:
+                send_error(data["channel"],
+                           "@{}: This repository does not exist in {}!".format(user_data["name"], real_org))
+                return
+
+        except Exception as e:
+            send_error(data["channel"],
+                       "@{}: I encountered a problem:\n\n{}".format(user_data["name"], e))
+
+            return
+
+        # Great! Delete the repository:
+        try:
+            self.delete_repo(repo_to_remove, real_org)
+        except Exception as e:
+            send_error(data["channel"],
+                       "@{}: I encountered a problem:\n\n{}".format(user_data["name"], e))
+            return
+
+        # All done!
+        message = "@{}: The repo: {} has been deleted from {}.\n".format(user_data["name"],
+                                                                         repo_to_remove, real_org)
+
+        send_success(data["channel"], message)
+
     def set_default_branch_command(self, data, user_data):
         """
         Sets the default branch of a repo.
@@ -709,6 +791,24 @@ class GitHubPlugin(BotCommander):
                 .format(response.status_code)
             raise requests.exceptions.RequestException(message)
 
+    def delete_repo(self, repo_to_delete, org):
+        headers = {
+            'Authorization': 'token {}'.format(self.token),
+            'Accept': GITHUB_VERSION
+        }
+        api_part = 'repos/{org}/{repo}'.format(org=org, repo=repo_to_delete)
+
+        response = requests.delete(
+            '{}{}'.format(GITHUB_URL, api_part),
+            headers=headers,
+            timeout=10
+        )
+
+        if response.status_code != 204:
+            message = 'An error was encountered communicating with GitHub: Status Code: {}' \
+                .format(response.status_code)
+            raise requests.exceptions.RequestException(message)
+
     def set_repo_permissions(self, repo_to_set, org, team, permission):
         headers = {
             'Authorization': 'token {}'.format(self.token),
@@ -862,7 +962,7 @@ class GitHubPlugin(BotCommander):
         if not (pull_requests):
             if isinstance(pull_requests, list):
                 send_info(data["channel"],
-                           "@{}: No matching pull requests were found in *{}*.".format(user_data["name"], reponame))
+                          "@{}: No matching pull requests were found in *{}*.".format(user_data["name"], reponame))
             return
 
         headers = ["#PR", "Title", "Opened by", "Assignee", "State"]
@@ -872,4 +972,5 @@ class GitHubPlugin(BotCommander):
             assignee = pr['assignee']['login'] if pr['assignee'] is not None else '-'
             rows.append([pr['number'],pr['title'], pr['user']['login'], assignee,pr['state'].title()])
         # Done:
-        send_raw(data["channel"], text="Repository: *{}* \n\n```{}```".format(reponame, tabulate(rows, headers=headers, tablefmt='orgtbl')))
+        send_raw(data["channel"], text="Repository: *{}* \n\n```{}```".format(reponame, tabulate(rows, headers=headers,
+                                                                                                 tablefmt='orgtbl')))

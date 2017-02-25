@@ -1,4 +1,4 @@
-from auth_plugins.enabled_plugins import AUTH_PLUGINS
+from ..auth_plugins.enabled_plugins import AUTH_PLUGINS
 
 # Define the organizations that this Bot will examine.
 ORGS = {

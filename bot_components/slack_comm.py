@@ -8,7 +8,7 @@
 """
 import json
 
-import bot_components
+from .. import bot_components
 
 # A nice color to output
 WORKING_COLOR = "#439FE0"

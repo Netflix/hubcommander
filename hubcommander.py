@@ -120,6 +120,6 @@ def setup():
                 HELP_TEXT.append("`{cmd}` - {help}\n".format(cmd=cmd["command"], help=cmd["help"]))
             else:
                 print("\t[/] Skipping disabled command: \'{cmd}\'".format(cmd=cmd["command"]))
-        print("[+] Successfully enabled command_plugins plugin \"{}\"".format(name))
+        print("[+] Successfully enabled command plugin \"{}\"".format(name))
 
-    print("[✔] Completed enabling command_plugins plugins.")
+    print("[✔] Completed enabling command plugins.")

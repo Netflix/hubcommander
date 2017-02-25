@@ -13,8 +13,8 @@ The steps below make the following assumptions:
 Basic Installation
 -----------------
 HubCommander is dependent on the [slackhq/python-rtmbot](https://github.com/slackhq/python-rtmbot) 
-release [0.3.0](https://github.com/slackhq/python-rtmbot/releases/tag/0.3.0)). Please review details about the
-python-rtmbot before continuing to install HubCommander.  
+release [0.4.0](https://github.com/slackhq/python-rtmbot/releases/tag/0.4.0)). Please review details about the
+python-rtmbot before continuing to install HubCommander.
 
 Note: Some work will need to be performed to make it compatible with the latest release of the rtmbot, 
 which has some breaking changes (see https://github.com/Netflix/hubcommander/issues/1 for details).
@@ -70,7 +70,7 @@ Out of the box, HubCommander is configured to receive secrets from environment v
 to simplify running HubCommander in Docker. These secrets should not be stored at rest unencrypted.
 
 HubCommander also provides an [AWS KMS](https://aws.amazon.com/kms/) method for extracting an encrypted
-JSON blob that contains the secrets. 
+JSON blob that contains the secrets.
 
 **If your organization utilizes a different mechanism for encrypting credentials, you will need to add code 
 to [`decrypted_creds.py`](https://github.com/Netflix/hubcommander/blob/master/decrypt_creds.py)'s
@@ -78,7 +78,7 @@ to [`decrypted_creds.py`](https://github.com/Netflix/hubcommander/blob/master/de
 
 No matter the encryption mechanism utilized, all secrets are passed into each plugin's `setup()` method, which
 enable the plugins to make authenticated calls to their respective services. You must get the credentials 
-required for plugins to work. 
+required for plugins to work.
 
 1. Contact your Slack administrator to obtain a Slack token that can be used for bots.
 2. If you haven't already, create a GitHub bot account, and invite it to all the organizations that 
@@ -91,14 +91,14 @@ Each plugin in HubCommander typically has a `config.py` file. This is where you 
 configuration that the plugin supports.
 
 For the GitHub plugin, you are required to define a Python `dict` with the organizations that you manage. An example
-of what this `dict` looks like can be found in the sample 
+of what this `dict` looks like can be found in the sample
 [`github/config.py`](https://github.com/Netflix/hubcommander/blob/master/github/config.py) file.
 
 At a minimum, you need to specify the real name of the organization, a list of aliases for the orgs (or an empty list),
 whether the organization can only create public repos (via the `public_only` boolean), as well as 
 a list of `dicts` that define the teams specific to the organization for new repositories will be assigned with. 
 This `dict` consists of 3 parts:
-the `id` of the GitHub org's team (you can get this from the 
+the `id` of the GitHub org's team (you can get this from the
 [`list_teams`](https://developer.github.com/v3/orgs/teams/#list-teams) GitHub API command, along with the 
 permission for that team to have on newly created repos (either `pull`, `push`, or `admin`),
 as well as the actual `name` of the team.
@@ -111,7 +111,7 @@ by HubCommander to perform privileged GitHub tasks.
 You will need to create an [access token](https://help.github.com/articles/creating-an-access-token-for-command-line-use/).
 To do this, you will need to:
 
-1. Log into your GitHub bot user's account. 
+1. Log into your GitHub bot user's account.
 2. Visit [this settings page](https://github.com/settings/tokens) to see the `Personal Access Tokens`
 3. Click `Generate new token`.
 4. Provide a description for this token, such as `HubCommander Slack GitHub Bot API token`.
@@ -129,7 +129,7 @@ To do this, you will need to:
 ### HubCommander Secrets
 
 Once you have your GitHub and Slack Tokens, you are now ready to configure HubCommander (if you wish to make use
-of Travis CI and Duo integration, please refer to the docs for those plugins 
+of Travis CI and Duo integration, please refer to the docs for those plugins
 [here](travis_ci.md) and [here](authentication.md)).
 
 You will need to encrypt the Slack and GitHub credentials. If you make use of AWS, a KMS example is provided 

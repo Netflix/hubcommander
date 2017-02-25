@@ -17,7 +17,7 @@ administrative or `owner` privileges to your GitHub organization members.
 How it works?
 -------------
 HubCommander is based on [slackhq/python-rtmbot](https://github.com/slackhq/python-rtmbot)
-(currently, dependent on release [0.3.0](https://github.com/slackhq/python-rtmbot/releases/tag/0.3.0))
+(currently, dependent on release [0.4.0](https://github.com/slackhq/python-rtmbot/releases/tag/0.4.0))
 
 You simply type `!help`, and the bot will output a list of commands that the bot supports. Typing
 the name of the command, for example: `!CreateRepo`, will output help text on how to execute the command.

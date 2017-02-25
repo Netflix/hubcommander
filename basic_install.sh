@@ -27,7 +27,7 @@
 # After the files are fetched, the script will attempt to create the python virtual
 # environments and install all the python dependencies (PYTHON 3.5+ IS REQUIRED!)
 
-RTM_VERSION="0.3.0"
+RTM_VERSION="0.4.0"
 RTM_PATH="python-rtmbot-${RTM_VERSION}"
 
 echo "Installing HubCommander and all dependencies..."

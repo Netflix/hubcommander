@@ -36,7 +36,7 @@ if [ $TRAVIS ]; then
     fi
 fi
 
-export RTM_VERSION="0.3.0"
+export RTM_VERSION="0.4.0"
 export RTM_PATH="python-rtmbot-${RTM_VERSION}"
 
 echo "-----------------------------------------"

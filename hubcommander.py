@@ -11,7 +11,7 @@ from rtmbot.core import Plugin
 from hubcommander.auth_plugins.enabled_plugins import AUTH_PLUGINS
 from hubcommander.bot_components.slack_comm import get_user_data, send_error, send_info
 from hubcommander.command_plugins.enabled_plugins import GITHUB_PLUGIN, COMMAND_PLUGINS
-from hubcommander.config import *
+from hubcommander.config import IGNORE_ROOMS, ONLY_LISTEN
 from hubcommander.decrypt_creds import get_credentials
 
 HELP_TEXT = []

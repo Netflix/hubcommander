@@ -14,7 +14,7 @@ import requests
 
 from bot_components.bot_classes import BotCommander
 from bot_components.slack_comm import extract_repo_name, send_error, send_info, preformat_args, send_success
-from command_plugins.travis_ci.config import *
+from command_plugins.travis_ci.config import USER_COMMAND_DICT, USER_AGENT
 
 TRAVIS_URLS = {
     "pro": "https://api.travis-ci.com",

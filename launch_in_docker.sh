@@ -21,11 +21,13 @@
 ################################################################################
 
 # This will build a docker image of HubCommander.
-echo 'DEBUG: False' > /hubcommander/rtmbot.conf
-echo 'SLACK_TOKEN: "'$SLACK_TOKEN'"' >> /hubcommander/rtmbot.conf
+echo 'DEBUG: True' > /rtmbot/rtmbot.conf
+echo 'SLACK_TOKEN: "'$SLACK_TOKEN'"' >> /rtmbot/rtmbot.conf
+echo 'ACTIVE_PLUGINS:' >> /rtmbot/rtmbot.conf
+echo '    - hubcommander.hubcommander.HubCommander' >> /rtmbot/rtmbot.conf
 
 # Launch it!
 export PYTHONIOENCODING="UTF-8"
 source venv/bin/activate
-cd /hubcommander
-python -u rtmbot.py
+cd /rtmbot
+rtmbot

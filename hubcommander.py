@@ -8,11 +8,11 @@
 """
 from rtmbot.core import Plugin
 
-from .auth_plugins.enabled_plugins import AUTH_PLUGINS
-from .bot_components.slack_comm import get_user_data, send_error, send_info
-from .command_plugins.enabled_plugins import GITHUB_PLUGIN, COMMAND_PLUGINS
-from .config import *
-from .decrypt_creds import get_credentials
+from hubcommander.auth_plugins.enabled_plugins import AUTH_PLUGINS
+from hubcommander.bot_components.slack_comm import get_user_data, send_error, send_info
+from hubcommander.command_plugins.enabled_plugins import GITHUB_PLUGIN, COMMAND_PLUGINS
+from hubcommander.config import *
+from hubcommander.decrypt_creds import get_credentials
 
 HELP_TEXT = []
 

@@ -8,7 +8,7 @@
 """
 import json
 
-from .. import bot_components
+from hubcommander import bot_components
 
 # A nice color to output
 WORKING_COLOR = "#439FE0"

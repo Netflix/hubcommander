@@ -13,10 +13,10 @@ import requests
 import validators
 from tabulate import tabulate
 
-from ..bot_components.bot_classes import BotCommander
-from ..bot_components.slack_comm import send_info, send_success, send_error, send_raw, preformat_args, preformat_args_with_spaces, \
+from hubcommander.bot_components.bot_classes import BotCommander
+from hubcommander.bot_components.slack_comm import send_info, send_success, send_error, send_raw, preformat_args, preformat_args_with_spaces, \
     extract_repo_name
-from .config import *
+from hubcommander.github.config import *
 
 
 class GitHubPlugin(BotCommander):

@@ -156,6 +156,23 @@ Please refer to the documentation [here](command_config.md) for additional detai
 Running HubCommander
 -------------------
 
+### `rtmbot` Configuration
+
+Regardless of how you run the bot, you will need to worry about the `rtmbot` configuration. The factory docker image
+generates this dynamically, but if you decide to make changes to the image, you will need to be aware of how
+this works.
+
+The `rtmbot.conf` file is required to be placed in the base directory of the `rtmbot`.  This file MUST have some 
+elements in it. Namely, it must look similar to this:
+
+```
+DEBUG: True
+SLACK_TOKEN: "YOUR-SLACK-TOKEN-HERE"
+ACTIVE_PLUGINS:
+    - hubcommander.hubcommander.HubCommander
+```
+
+
 ### Using Docker
 
 Continue reading the [HubCommander Docker documentation here](docker.md).

@@ -8,6 +8,8 @@ venv*
 Dockerfile
 basic_install.sh
 build_docker.sh
+publish_via_travis.sh
 AUTHORS
+OSSMETADATA
 .gitkeep
 tests/

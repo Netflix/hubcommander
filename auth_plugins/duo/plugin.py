@@ -1,5 +1,5 @@
 """
-.. module: hubcommander.duo.plugin
+.. module: hubcommander.auth_plugins.duo.plugin
     :platform: Unix
     :copyright: (c) 2017 by Netflix Inc., see AUTHORS for more
     :license: Apache, see LICENSE for more details.
@@ -10,8 +10,8 @@ import json
 
 from duo_client.client import Client
 
-from bot_components.bot_classes import BotAuthPlugin
-from bot_components.slack_comm import send_info, send_error, send_success
+from hubcommander.bot_components.bot_classes import BotAuthPlugin
+from hubcommander.bot_components.slack_comm import send_info, send_error, send_success
 
 
 class InvalidDuoResponseError(Exception):

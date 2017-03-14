@@ -26,8 +26,8 @@ docker run -d \
  -e "DUO_HOST=SOME_DUO_HOST.duosecurity.com" \
  -e "DUO_IKEY=SOME_DUO_IKEY" \
  -e "DUO_SKEY=SOME_DUO_SKEY" \
- -v /path/to/cloned/hubcommander/auth_plugins/enabled_plugins.py:/hubcommander/plugins/auth_plugins/enabled_plugins.py \
- -v /path/to/cloned/hubcommander/github/config.py:/hubcommander/plugins/github/config.py \
+ -v /path/to/cloned/hubcommander/auth_plugins/enabled_plugins.py:/rtmbot/hubcommander/auth_plugins/enabled_plugins.py \
+ -v /path/to/cloned/hubcommander/github/config.py:/rtmbot/hubcommander/github/config.py \
  netflixoss/hubcommander:latest
 ```
 

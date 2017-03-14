@@ -1,5 +1,5 @@
 """
-.. module: hubcommander.travis_ci.plugin
+.. module: hubcommander.command_plugins.travis_ci.plugin
     :platform: Unix
     :copyright: (c) 2017 by Netflix Inc., see AUTHORS for more
     :license: Apache, see LICENSE for more details.
@@ -12,9 +12,10 @@ import time
 
 import requests
 
-from bot_components.bot_classes import BotCommander
-from bot_components.slack_comm import extract_repo_name, send_error, send_info, preformat_args, send_success
-from command_plugins.travis_ci.config import USER_COMMAND_DICT, USER_AGENT
+from hubcommander.bot_components.bot_classes import BotCommander
+from hubcommander.bot_components.slack_comm import extract_repo_name, send_error, send_info, preformat_args, \
+    send_success
+from .config import USER_COMMAND_DICT, USER_AGENT
 
 TRAVIS_URLS = {
     "pro": "https://api.travis-ci.com",
@@ -68,7 +69,7 @@ class TravisPlugin(BotCommander):
         :param data:
         :return:
         """
-        from command_plugins.enabled_plugins import GITHUB_PLUGIN
+        from hubcommander.command_plugins.enabled_plugins import GITHUB_PLUGIN
         try:
             parser = argparse.ArgumentParser()
             parser.add_argument('org', type=str)

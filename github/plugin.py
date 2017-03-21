@@ -82,8 +82,15 @@ class GitHubPlugin(BotCommander):
                 "user_data_required": True,
                 "help": "Delete a GitHub repository.",
                 "enabled": True     # It is HIGHLY recommended you have auth enabled for this!!
+            },
+            "!InviteUser": {
+                "command": "!InviteUser",
+                "func": self.add_user_to_org_command,
+                "user_data_required": True,
+                "help": "Adds a GitHub user to a specific GitHub organization.",
+                "permitted_permissions": ["admin", "member"],
+                "enabled": True
             }
-
         }
         self.token = None
 
@@ -365,6 +372,102 @@ class GitHubPlugin(BotCommander):
                      "@{}: The GitHub user: `{}` has been added as an outside collaborator with `{}` "
                      "permissions to {}/{}.".format(user_data["name"], outside_collab_id, repo_access,
                                                     real_org, reponame),
+                     markdown=True)
+
+    def add_user_to_org_command(self, data, user_data):
+        """
+        Adds an GitHub user to Organization with a specified permission.
+
+        Command is as follows: !inviteuser <organization> <permission>
+        :param data:
+        :return:
+        """
+        try:
+            parser = argparse.ArgumentParser()
+            parser.add_argument('user_id', type=str)
+            parser.add_argument('org', type=str)
+            parser.add_argument('permission', type=str)
+
+            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
+            if len(unknown) > 0:
+                raise SystemExit()
+
+            args = vars(args)
+
+            user_id = args["user_id"]
+
+            real_org = self.org_lookup[args["org"]][0]
+            org_access = args["permission"]
+
+            # Check that the permissions and the org are correct:
+            if org_access not in self.commands["!InviteUser"]["permitted_permissions"]:
+                raise KeyError("Permissions")
+
+        except KeyError as ke:
+            if "Permissions" in str(ke):
+                p_str = " or ".join(["`{perm}`".format(perm=perm)
+                                     for perm in self.commands["!InviteUser"]["permitted_permissions"]])
+                send_error(data["channel"], '@{}: Invalid permission sent in.  Permissions must be {perms}.'
+                           .format(user_data["name"], perms=p_str), markdown=True)
+            else:
+                send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
+                           .format(user_data["name"]), markdown=True)
+            return
+
+        except SystemExit as _:
+            send_info(data["channel"], "@{}: `!InviteUser` usage is:\n```!InviteUser <GitHubIDOfUser> "
+                                       "<OrgAliasThatContainsTheRepo> "
+                                       "<PermissionEitherAdminOrMember>```"
+                                       "\nNo special characters or spaces in the variables. "
+                                       "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
+                      .format(user_data["name"]), markdown=True)
+            return
+
+        # Auth?
+        if self.commands["!InviteUser"].get("auth"):
+            if not self.commands["!InviteUser"]["auth"]["plugin"].authenticate(
+                    data, user_data, **self.commands["!InviteUser"]["auth"]["kwargs"]):
+                return
+
+        # Output that we are doing work:
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+
+        # Check that the GitHub ID is actually real:
+        try:
+            found_user = self.get_github_user(user_id)
+
+            if not found_user:
+                send_error(data["channel"], "@{}: The GitHub user: {} does not exist.".format(user_data["name"],
+                                                                                              user_id))
+                return
+
+        except Exception as e:
+            send_error(data["channel"],
+                       "@{}: A problem was encountered communicating with GitHub to verify the user's GitHub "
+                       "id. Here are the details:\n{}".format(user_data["name"], str(e)))
+            return
+
+        # So: GitHub ID is real - grant access:
+        try:
+            self.add_user_to_org(user_id, real_org, org_access)
+
+        except ValueError as ve:
+            send_error(data["channel"],
+                       "@{}: Problem encountered adding the user to the organization.\n"
+                       "The response code from GitHub was: {}".format(user_data["name"], str(ve)))
+            return
+
+        except Exception as e:
+            send_error(data["channel"],
+                       "@{}: Problem encountered adding the user to the organization.\n"
+                       "Here are the details: {}".format(user_data["name"], str(e)))
+            return
+
+        # Done:
+        send_success(data["channel"],
+                     "@{}: The GitHub user: `{}` has been added to the organization with `{}` "
+                     "permissions to {}/{}.".format(user_data["name"], user_id, org_access,
+                                                    real_org),
                      markdown=True)
 
     def create_repo_command(self, data, user_data):
@@ -765,6 +868,21 @@ class GitHubPlugin(BotCommander):
         response = requests.put('{}{}'.format(GITHUB_URL, api_part), data=json.dumps(data), headers=headers, timeout=10)
 
         if response.status_code != 204:
+            raise ValueError(response.status_code)
+
+    def add_user_to_org(self, user_id, real_org, role):
+        headers = {
+            'Authorization': 'token {}'.format(self.token),
+            'Accept': GITHUB_VERSION
+        }
+
+        data = {"role": role}
+
+        # Add the outside collab to the repo:
+        api_part = 'orgs/{}/memberships/{}'.format(real_org, user_id)
+        response = requests.put('{}{}'.format(GITHUB_URL, api_part), data=json.dumps(data), headers=headers, timeout=10)
+
+        if response.status_code != 200:
             raise ValueError(response.status_code)
 
     def create_new_repo(self, repo_to_create, org, visibility):

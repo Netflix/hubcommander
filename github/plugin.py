@@ -1009,6 +1009,25 @@ class GitHubPlugin(BotCommander):
         if response.status_code != 200:
             raise ValueError('GitHub Problem: Adding to team, status code: {}'.format(response.status_code))
 
+    def find_team_id_by_name(self, org, team_name):
+        headers = {
+            'Authorization': 'token {}'.format(self.token),
+            'Accept': GITHUB_VERSION
+        }
+
+        # Add the outside collab to the repo:
+        api_part = 'orgs/{}/teams'.format(org)
+        response = requests.get('{}{}'.format(GITHUB_URL, api_part), headers=headers, timeout=10)
+
+        if response.status_code != 200:
+            raise ValueError("GitHub Problem: Could not list teams: {}".format(response.status_code))
+
+        for x in response.json():
+            if x["slug"] == team_name:
+                return x["id"]
+
+        return False
+
     def list_pull_requests(self, data, user_data):
         """
         List the Pull Requests for a repo.

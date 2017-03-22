@@ -90,6 +90,14 @@ class GitHubPlugin(BotCommander):
                 "help": "Adds a GitHub user to a specific GitHub organization.",
                 "permitted_permissions": ["admin", "member"],
                 "enabled": True
+            },
+            "!AddUserToTeam": {
+                "command": "!AddUserToTeam",
+                "func": self.add_user_to_team_command,
+                "user_data_required": True,
+                "help": "Adds a GitHub user to a specific team inside the organization.",
+                "permitted_permissions": ["maintainer", "member"],
+                "enabled": True
             }
         }
         self.token = None
@@ -468,6 +476,111 @@ class GitHubPlugin(BotCommander):
                      "@{}: The GitHub user: `{}` has been added to the organization with `{}` "
                      "permissions to {}/{}.".format(user_data["name"], user_id, org_access,
                                                     real_org),
+                     markdown=True)
+
+    def add_user_to_team_command(self, data, user_data):
+        """
+        Adds a GitHub user to a team with a specified permission.
+
+        Command is as follows: !addusertoteam <user_id> <organization> <team> <permission>
+        :param data:
+        :return:
+        """
+        try:
+            parser = argparse.ArgumentParser()
+            parser.add_argument('user_id', type=str)
+            parser.add_argument('org', type=str)
+            parser.add_argument('team', type=str)
+            parser.add_argument('permission', type=str)
+
+            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
+            if len(unknown) > 0:
+                raise SystemExit()
+
+            args = vars(args)
+
+            user_id = args["user_id"]
+
+            real_org = self.org_lookup[args["org"]][0]
+            team_name = args["team"]
+            team_access = args["permission"]
+
+            # Check that the permissions and the org are correct:
+            if team_access not in self.commands["!AddUserToTeam"]["permitted_permissions"]:
+                raise KeyError("Permissions")
+
+        except KeyError as ke:
+            if "Permissions" in str(ke):
+                p_str = " or ".join(["`{perm}`".format(perm=perm)
+                                     for perm in self.commands["!AddUserToTeam"]["permitted_permissions"]])
+                send_error(data["channel"], '@{}: Invalid permission sent in.  Permissions must be {perms}.'
+                           .format(user_data["name"], perms=p_str), markdown=True)
+            else:
+                send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
+                           .format(user_data["name"]), markdown=True)
+            return
+
+        except SystemExit as _:
+            send_info(data["channel"], "@{}: `!AddUserToTeam` usage is:\n```!AddUserToTeam <GitHubUserID> "
+                                       "<OrgAlias> <TeamToAddAccessTo> "
+                                       "<PermissionEitherMaintainerOrMember>```"
+                                       "\nNo special characters or spaces in the variables. "
+                                       "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
+                      .format(user_data["name"]), markdown=True)
+            return
+
+        # Auth?
+        if self.commands["!AddUserToTeam"].get("auth"):
+            if not self.commands["!AddUserToTeam"]["auth"]["plugin"].authenticate(
+                    data, user_data, **self.commands["!AddUserToTeam"]["auth"]["kwargs"]):
+                return
+
+        # Output that we are doing work:
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+
+        # Check if team exists, if it does return the id
+        team_id = self.find_team_id_by_name(real_org, team_name)
+
+        if not (team_id):
+            send_error(data["channel"], "The GitHub team does not exist.")
+            return
+
+        # Check that the GitHub ID is actually real:
+        try:
+            found_user = self.get_github_user(user_id)
+
+            if not found_user:
+                send_error(data["channel"], "@{}: The GitHub user: {} does not exist.".format(user_data["name"],
+                                                                                              user_id))
+                return
+
+        except Exception as e:
+            send_error(data["channel"],
+                       "@{}: A problem was encountered communicating with GitHub to verify the user's GitHub "
+                       "id. Here are the details:\n{}".format(user_data["name"], str(e)))
+            return
+
+        # So: GitHub ID is real - and the team exists -- grant access:
+        try:
+            self.invite_user_to_gh_org_team(user_id, team_id, team_access)
+
+        except ValueError as ve:
+            send_error(data["channel"],
+                       "@{}: Problem encountered adding the user as a team member.\n"
+                       "The response code from GitHub was: {}".format(user_data["name"], str(ve)))
+            return
+
+        except Exception as e:
+            send_error(data["channel"],
+                       "@{}: Problem encountered adding the user as a team member.\n"
+                       "Here are the details: {}".format(user_data["name"], str(e)))
+            return
+
+        # Done:
+        send_success(data["channel"],
+                     "@{}: The GitHub user: `{}` has been added as a team member with `{}` "
+                     "permissions to {}/{}.".format(user_data["name"], user_id, team_access,
+                                                    real_org, team_name),
                      markdown=True)
 
     def create_repo_command(self, data, user_data):

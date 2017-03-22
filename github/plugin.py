@@ -996,18 +996,20 @@ class GitHubPlugin(BotCommander):
 
         return False
 
-    def invite_user_to_gh_org_team(self, github_id, team_id):
+    def invite_user_to_gh_org_team(self, github_id, team_id, role):
         headers = {
             'Authorization': 'token {}'.format(self.token),
             'Accept': GITHUB_VERSION
         }
 
-        # Invite the user to the org (by adding them to the specified team):
+        data = {"role": role}
+
+        # Add the outside collab to the repo:
         api_part = 'teams/{}/memberships/{}'.format(team_id, github_id)
-        response = requests.put('{}{}'.format(GITHUB_URL, api_part), headers=headers, timeout=10)
+        response = requests.put('{}{}'.format(GITHUB_URL, api_part), data=json.dumps(data), headers=headers, timeout=10)
 
         if response.status_code != 200:
-            raise ValueError('GitHub Problem: Adding to team, status code: {}'.format(response.status_code))
+            raise ValueError("GitHub Problem: Adding to team, status code: {}".format(response.status_code))
 
     def find_team_id_by_name(self, org, team_name):
         headers = {

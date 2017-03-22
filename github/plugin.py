@@ -376,9 +376,9 @@ class GitHubPlugin(BotCommander):
 
     def add_user_to_org_command(self, data, user_data):
         """
-        Adds an GitHub user to Organization with a specified permission.
+        Adds a GitHub user to Organization with a specified permission.
 
-        Command is as follows: !inviteuser <organization> <permission>
+        Command is as follows: !inviteuser <username> <organization> <permission>
         :param data:
         :return:
         """
@@ -416,7 +416,7 @@ class GitHubPlugin(BotCommander):
 
         except SystemExit as _:
             send_info(data["channel"], "@{}: `!InviteUser` usage is:\n```!InviteUser <GitHubIDOfUser> "
-                                       "<OrgAliasThatContainsTheRepo> "
+                                       "<OrgAlias> "
                                        "<PermissionEitherAdminOrMember>```"
                                        "\nNo special characters or spaces in the variables. "
                                        "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "

@@ -88,7 +88,7 @@ class GitHubPlugin(BotCommander):
                 "func": self.add_user_to_team_command,
                 "user_data_required": True,
                 "help": "Adds a GitHub user to a specific team inside the organization.",
-                "permitted_permissions": ["maintainer", "member"],
+                "permitted_roles": ["member", "maintainer"],
                 "enabled": True
             }
         }
@@ -376,9 +376,9 @@ class GitHubPlugin(BotCommander):
 
     def add_user_to_team_command(self, data, user_data):
         """
-        Adds a GitHub user to a team with a specified permission.
+        Adds a GitHub user to a team with a specified role.
 
-        Command is as follows: !addusertoteam <user_id> <organization> <team> <permission>
+        Command is as follows: !addusertoteam <user_id> <organization> <team> <role>
         :param data:
         :return:
         """
@@ -387,7 +387,7 @@ class GitHubPlugin(BotCommander):
             parser.add_argument('user_id', type=str)
             parser.add_argument('org', type=str)
             parser.add_argument('team', type=str)
-            parser.add_argument('permission', type=str)
+            parser.add_argument('role', type=str)
 
             args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
             if len(unknown) > 0:
@@ -399,17 +399,17 @@ class GitHubPlugin(BotCommander):
 
             real_org = self.org_lookup[args["org"]][0]
             team_name = args["team"]
-            team_access = args["permission"]
+            team_access = args["role"]
 
             # Check that the permissions and the org are correct:
-            if team_access not in self.commands["!AddUserToTeam"]["permitted_permissions"]:
-                raise KeyError("Permissions")
+            if team_access not in self.commands["!AddUserToTeam"]["permitted_roles"]:
+                raise KeyError("Roles")
 
         except KeyError as ke:
-            if "Permissions" in str(ke):
+            if "Roles" in str(ke):
                 p_str = " or ".join(["`{perm}`".format(perm=perm)
-                                     for perm in self.commands["!AddUserToTeam"]["permitted_permissions"]])
-                send_error(data["channel"], '@{}: Invalid permission sent in.  Permissions must be {perms}.'
+                                     for perm in self.commands["!AddUserToTeam"]["permitted_roles"]])
+                send_error(data["channel"], '@{}: Invalid roles sent in.  Roles must be {perms}.'
                            .format(user_data["name"], perms=p_str), markdown=True)
             else:
                 send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
@@ -419,7 +419,7 @@ class GitHubPlugin(BotCommander):
         except SystemExit as _:
             send_info(data["channel"], "@{}: `!AddUserToTeam` usage is:\n```!AddUserToTeam <GitHubUserID> "
                                        "<OrgAlias> <TeamToAddAccessTo> "
-                                       "<PermissionEitherMaintainerOrMember>```"
+                                       "<RoleEitherMemberOrMantainer>```"
                                        "\nNo special characters or spaces in the variables. "
                                        "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
                       .format(user_data["name"]), markdown=True)

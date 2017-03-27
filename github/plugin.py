@@ -1016,7 +1016,7 @@ class GitHubPlugin(BotCommander):
         response = requests.get('{}{}'.format(GITHUB_URL, api_part), headers=headers, timeout=10)
 
         if response.status_code != 200:
-            raise ValueError("GitHub Problem: Could not list teams: {}".format(response.status_code))
+            raise ValueError("GitHub Problem: Could not list teams -- received error code: {}".format(response.status_code))
 
         # Check if the provided team_name belongs to a team inside the organization:
         for x in response.json():

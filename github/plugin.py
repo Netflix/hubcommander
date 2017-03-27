@@ -998,7 +998,7 @@ class GitHubPlugin(BotCommander):
 
         data = {"role": role}
 
-        # Add the outside collab to the repo:
+        # Add the GitHub user to the team:
         api_part = 'teams/{}/memberships/{}'.format(team_id, github_id)
         response = requests.put('{}{}'.format(GITHUB_URL, api_part), data=json.dumps(data), headers=headers, timeout=10)
 
@@ -1011,13 +1011,14 @@ class GitHubPlugin(BotCommander):
             'Accept': GITHUB_VERSION
         }
 
-        # Add the outside collab to the repo:
+        # Get all teams inside the organzation:
         api_part = 'orgs/{}/teams'.format(org)
         response = requests.get('{}{}'.format(GITHUB_URL, api_part), headers=headers, timeout=10)
 
         if response.status_code != 200:
             raise ValueError("GitHub Problem: Could not list teams: {}".format(response.status_code))
 
+        # Check if the provided team_name belongs to a team inside the organization:
         for x in response.json():
             if x["slug"] == team_name:
                 return x["id"]

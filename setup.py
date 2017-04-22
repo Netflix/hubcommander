@@ -25,7 +25,7 @@ with open(os.path.join(ROOT, "__about__.py")) as f:
 
 install_requires = [
     'boto3>=1.4.3',     # For KMS support
-    'duo-client==3.0',
+    'duo_client==3.0',
     'tabulate>=0.7.7',
     'validators>=0.11.1',
     'rtmbot==0.4.0'

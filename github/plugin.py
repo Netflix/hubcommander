@@ -10,12 +10,13 @@ import argparse
 import json
 
 import requests
+import time
 import validators
 from tabulate import tabulate
 
 from hubcommander.bot_components.bot_classes import BotCommander
 from hubcommander.bot_components.slack_comm import send_info, send_success, send_error, send_raw, preformat_args, preformat_args_with_spaces, \
-    extract_repo_name
+    extract_repo_name, parse_toggles, TOGGLE_ON_VALUES, TOGGLE_OFF_VALUES
 from hubcommander.github.config import (GITHUB_URL, GITHUB_VERSION, ORGS,
                                         USER_COMMAND_DICT)
 
@@ -90,7 +91,14 @@ class GitHubPlugin(BotCommander):
                 "help": "Adds a GitHub user to a specific team inside the organization.",
                 "permitted_roles": ["member", "maintainer"],
                 "enabled": True
-            }
+            },
+            "!SetBranchProtection": {
+                "command": "!SetBranchProtection",
+                "func": self.set_branch_protection_command,
+                "user_data_required": True,
+                "help": "Toggles the branch protection for a repo.",
+                "enabled": True  # It is HIGHLY recommended you have auth enabled for this!!
+            },
         }
         self.token = None
 
@@ -549,6 +557,9 @@ class GitHubPlugin(BotCommander):
                        "@{}: I encountered a problem:\n\n{}".format(user_data["name"], e))
             return
 
+        # Need to wait a bit to ensure that the repo actually exists.
+        time.sleep(2)
+
         # Grant the proper teams access to the repository:
         try:
             for perm_dict in ORGS[real_org]["new_repo_teams"]:
@@ -709,7 +720,7 @@ class GitHubPlugin(BotCommander):
                        markdown=True)
             return False
 
-        # Great, modify the description:
+        # Great, set the default branch:
         if not (self.make_repo_edit(data, user_data, reponame, real_org, default_branch=branch)):
             return
 
@@ -717,6 +728,94 @@ class GitHubPlugin(BotCommander):
         send_success(data["channel"],
                      "@{}: The {}/{} repository's default branch has been set to: `{}`."
                      .format(user_data["name"], real_org, reponame, branch), markdown=True)
+
+    def set_branch_protection_command(self, data, user_data):
+        """
+        Sets branch protection on a repo (CURRENTLY VERY LIMITED).
+
+        Command is as follows: !setbranchprotection <organization> <repo> <branch> <on/off>
+        :param data:
+        :return:
+        """
+        try:
+            parser = argparse.ArgumentParser()
+            parser.add_argument('org', type=str)
+            parser.add_argument('repo', type=str)
+            parser.add_argument('branch', type=str)
+            parser.add_argument('toggle', type=str)
+
+            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
+            if len(unknown) > 0:
+                raise SystemExit()
+
+            args = vars(args)
+
+            # Check that we can use this org:
+            real_org = self.org_lookup[args["org"]][0]
+            reponame = extract_repo_name(args["repo"])
+            branch = args["branch"]
+            toggle = parse_toggles(args["toggle"])
+
+        except KeyError as _:
+            send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
+                       .format(user_data["name"]), markdown=True)
+            return
+
+        except ValueError as _:
+            valid_toggles = TOGGLE_ON_VALUES + TOGGLE_OFF_VALUES
+
+            send_error(data["channel"], '@{}: Invalid toggle sent in. Must be one of: {}.'
+                       .format(user_data["name"], ", ".join(valid_toggles)), markdown=True)
+            return
+
+        except SystemExit as _:
+            send_info(data["channel"], "@{}: `!SetBranchProtection` usage is:\n```!SetBranchProtection "
+                                       "<OrgThatHasRepo> <Repo> <NameOfBranch> <On|Off>```\n"
+                                       "No special characters or spaces in the variables. \n"
+                                       "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
+                                       "This will first check for the presence of the repo in the org before "
+                                       "creating it."
+                      .format(user_data["name"]), markdown=True)
+            return
+
+        # Auth?
+        if self.commands["!SetBranchProtection"].get("auth"):
+            if not self.commands["!SetBranchProtection"]["auth"]["plugin"].authenticate(
+                    data, user_data, **self.commands["!SetBranchProtection"]["auth"]["kwargs"]):
+                return
+
+        # Output that we are doing work:
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+
+        # Check that the repo exists:
+        repo_data = self.check_gh_for_existing_repo(reponame, real_org)
+        if not (repo_data):
+            send_error(data["channel"],
+                       "@{}: This repository does not exist in {}.".format(user_data["name"], real_org))
+            return False
+
+        # Check if the branch exists on that repo....
+        if not (self.check_for_repo_branch(reponame, real_org, branch)):
+            send_error(data["channel"],
+                       "@{}: This repository does not have the branch: `{}`.".format(user_data["name"], branch),
+                       markdown=True)
+            return False
+
+        # Great, change the protection status:
+        try:
+            self.set_branch_protection(reponame, real_org, branch, toggle)
+
+        except requests.exceptions.RequestException as re:
+            send_error(data["channel"],
+                       "@{}: Problem encountered setting branch protection.\n"
+                       "The response code from GitHub was: {}".format(user_data["name"], str(re)))
+            return
+
+        # Done:
+        status = "ENABLED" if toggle else "DISABLED"
+        send_success(data["channel"],
+                     "@{}: The {}/{} repository's {} branch protection status is now: {}."
+                     .format(user_data["name"], real_org, reponame, branch, status), markdown=True)
 
     def check_if_repo_exists(self, data, user_data, reponame, real_org):
         try:
@@ -929,8 +1028,6 @@ class GitHubPlugin(BotCommander):
         }
         api_part = 'teams/{}/repos/{}/{}'.format(team, org, repo_to_set)
 
-        print("I AM HERE -- the API PART IS: {}".format(api_part))
-
         data = {
             "permission": permission
         }
@@ -965,6 +1062,29 @@ class GitHubPlugin(BotCommander):
             raise requests.exceptions.RequestException(message)
 
         return False
+
+    def set_branch_protection(self, repo, org, branch, enabled):
+        # TODO: Need to figure out how to do more complex things with this.
+        #       Currently, this just does very simple enabling and disabling of branch protection
+        # See: https://developer.github.com/v3/repos/branches/#enabling-and-disabling-branch-protection
+        headers = {
+            'Authorization': 'token {}'.format(self.token),
+            'Accept': "application/vnd.github.loki-preview+json"
+        }
+        api_part = 'repos/{}/{}/branches/{}'.format(org, repo, branch)
+
+        data = {
+            "protection": {
+                "enabled": enabled
+            }
+        }
+
+        response = requests.patch('{}{}'.format(GITHUB_URL, api_part), data=json.dumps(data), headers=headers, timeout=10)
+
+        if response.status_code != 200:
+            message = 'An error was encountered communicating with GitHub: Status Code: {}' \
+                .format(response.status_code)
+            raise requests.exceptions.RequestException(message)
 
     def check_if_user_is_member_of_org(self, github_id, org):
         # Check if the user exists first:

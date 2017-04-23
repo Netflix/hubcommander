@@ -44,7 +44,8 @@ class DuoPlugin(BotAuthPlugin):
             return False
 
         except CantDuoUserError as _:
-            send_error(data["channel"], "💀 @{}: I can't Duo authenticate you. Please consult with IAE. Aborting..."
+            send_error(data["channel"], "💀 @{}: I can't Duo authenticate you. Please consult with your identity team."
+                                        " Aborting..."
                        .format(user_data["name"]), markdown=True)
             return False
 

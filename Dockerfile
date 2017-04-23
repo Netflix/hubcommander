@@ -26,6 +26,7 @@ RUN \
 
   # Install all the deps:
   /bin/bash -c "source /venv/bin/activate && pip install --upgrade pip" && \
+  /bin/bash -c "source /venv/bin/activate && pip install --upgrade setuptools" && \
   /bin/bash -c "source /venv/bin/activate && pip install wheel" && \
   /bin/bash -c "source /venv/bin/activate && pip install /rtmbot/hubcommander" && \
 
@@ -47,4 +48,4 @@ ENV SLACK_TOKEN="REPLACEMEINCMDLINE" \
     DUO_SKEY="REPLACEMEINCMDLINE"
 
 # Installation complete!  Ensure that things can run properly:
-ENTRYPOINT ["/bin/bash", "-c", "./launch_in_docker.sh"]
+ENTRYPOINT ["/bin/bash", "-c", "./launch_in_docker.sh", "2>&1", "/runninglog.txt"]

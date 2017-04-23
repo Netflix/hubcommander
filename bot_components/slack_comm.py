@@ -13,6 +13,9 @@ from hubcommander import bot_components
 # A nice color to output
 WORKING_COLOR = "#439FE0"
 
+TOGGLE_ON_VALUES = ["on", "true", "enabled"]
+TOGGLE_OFF_VALUES = ["off", "false", "disabled"]
+
 
 def say(channel, attachments, text=None):
     """
@@ -87,6 +90,7 @@ def send_success(channel, text, markdown=False):
 
     say(channel, [attachment])
 
+
 def send_raw(channel, text):
     """
     Sends an "info" message to Slack.
@@ -96,6 +100,7 @@ def send_raw(channel, text):
     """
 
     say(channel, None, text)
+
 
 def get_user_data(data):
     """
@@ -188,3 +193,20 @@ def extract_repo_name(reponame):
     split_repo = reponame.split("|")[1]
 
     return split_repo.replace(">", "")
+
+
+def parse_toggles(toggle):
+    """
+    Parses typical toggle values, like off, on, enabled, disabled, true, false, etc.
+    :param toggle: 
+    :return: 
+    """
+    toggle = toggle.lower()
+
+    if toggle in TOGGLE_ON_VALUES:
+        return True
+
+    elif toggle in TOGGLE_OFF_VALUES:
+        return False
+
+    raise ValueError("Invalid toggle: {}".format(toggle))

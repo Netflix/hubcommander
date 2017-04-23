@@ -184,7 +184,9 @@ are ready to run this!
 
 You will simply follow the instructions for running the python-rtmbot, which is typically to run:
 ```
-/path/to/venv/python3 rtmbot.py
+# Activate your venv:
+source /path/to/venv/.../bin/activate
+rtmbot
 ```
 If all is successful, you should see no errors in the output, and your bot should appear in the Slack channel
 that it was configured to run in.

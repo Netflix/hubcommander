@@ -10,7 +10,7 @@ from rtmbot.core import Plugin
 
 from hubcommander.auth_plugins.enabled_plugins import AUTH_PLUGINS
 from hubcommander.bot_components.slack_comm import get_user_data, send_error, send_info
-from hubcommander.command_plugins.enabled_plugins import GITHUB_PLUGIN, COMMAND_PLUGINS
+from hubcommander.command_plugins.enabled_plugins import COMMAND_PLUGINS
 from hubcommander.config import IGNORE_ROOMS, ONLY_LISTEN
 from hubcommander.decrypt_creds import get_credentials
 
@@ -24,11 +24,25 @@ def print_help(data):
         text += txt
 
     text += "`!Help` - This command."
+    text += "`!repeat` - Repeat some text back to me.\n"
+
     send_info(data["channel"], text, markdown=True)
 
 
+def repeat_text(data):
+    """
+    Repeat text back to user
+    :param data:
+    :return:
+    """
+
+    new_text = data['text'].split(' ', 1)[1]
+    send_info(data["channel"], new_text, markdown=True)
+
+
 COMMANDS = {
-    "!help": {"func": print_help, "user_data_required": False}
+    "!help": {"func": print_help, "user_data_required": False},
+    "!repeat": {"func": repeat_text, "user_data_required": False},
 }
 
 
@@ -99,19 +113,7 @@ def setup(slackclient):
 
     print("[-->] Enabling Command Plugins")
 
-    # Register the commands for the github plugin first and foremost:
-    print("[ ] Enabling github Plugin...")
-    GITHUB_PLUGIN.setup(secrets)
-    for cmd in GITHUB_PLUGIN.commands.values():
-        if cmd["enabled"]:
-            COMMANDS[cmd["command"].lower()] = cmd
-            print("\t[+] Adding command: \'{cmd}\'".format(cmd=cmd["command"]))
-            HELP_TEXT.append("`{cmd}` - {help}\n".format(cmd=cmd["command"], help=cmd["help"]))
-        else:
-            print("\t[/] Skipping disabled command: \'{cmd}\'".format(cmd=cmd["command"]))
-    print("[+] Successfully enabled github plugin.")
-
-    # Register the rest of the command_plugins plugins:
+    # Register the command_plugins plugins:
     for name, plugin in COMMAND_PLUGINS.items():
         print("[ ] Enabling Command Plugin: {}".format(name))
         plugin.setup(secrets)

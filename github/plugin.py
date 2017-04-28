@@ -1725,7 +1725,7 @@ class GitHubPlugin(BotCommander):
         """
         List the Deploy Keys for a repo.
 
-        Command is as follows: !ListKeys <organization> <repo> <id>
+        Command is as follows: !GetKey <organization> <repo> <id>
         :param data:
         :return:
         """

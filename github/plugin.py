@@ -22,6 +22,7 @@ from hubcommander.github.config import (GITHUB_URL, GITHUB_VERSION, ORGS,
 
 
 class GitHubPlugin(BotCommander):
+
     def __init__(self):
         super().__init__()
 
@@ -45,8 +46,10 @@ class GitHubPlugin(BotCommander):
                 "func": self.add_outside_collab_command,
                 "user_data_required": True,
                 "help": "Adds an outside collaborator to a specific repository in a specific GitHub organization.",
-                "permitted_permissions": ["push", "pull"],   # To grant admin, add this to the config for
-                "enabled": True                              # this command in the config.py.
+                # To grant admin, add this to the config for
+                "permitted_permissions": ["push", "pull"],
+                # this command in the config.py.
+                "enabled": True
             },
             "!SetDescription": {
                 "command": "!SetDescription",
@@ -99,6 +102,34 @@ class GitHubPlugin(BotCommander):
                 "help": "Toggles the branch protection for a repo.",
                 "enabled": True  # It is HIGHLY recommended you have auth enabled for this!!
             },
+            "!ListKeys": {
+                "command": "!ListKeys",
+                "func": self.list_deploy_keys_command,
+                "user_data_required": True,
+                "help": "List the Deploy Keys for a repo.",
+                "enabled": True
+            },
+            "!AddKey": {
+                "command": "!AddKey",
+                "func": self.add_deploy_key_command,
+                "user_data_required": True,
+                "help": "Add Deploy Key for a repo.",
+                "enabled": True
+            },
+            "!DeleteKey": {
+                "command": "!DeleteKey",
+                "func": self.delete_deploy_key_command,
+                "user_data_required": True,
+                "help": "Delete Deploy Key from a repo.",
+                "enabled": True
+            },
+            "!GetKey": {
+                "command": "!GetKey",
+                "func": self.get_deploy_key_command,
+                "user_data_required": True,
+                "help": "Get Deploy Key Public Key",
+                "enabled": True
+            },
         }
         self.token = None
 
@@ -112,7 +143,8 @@ class GitHubPlugin(BotCommander):
         self.org_lookup = {}
         for org in ORGS.items():
             # The lookup table is the lowercase real name of the org, plus the aliases, along with
-            # a tuple containing the full real name of the org, with the org dict details:
+            # a tuple containing the full real name of the org, with the org
+            # dict details:
             self.org_lookup[org[0].lower()] = (org[0], org[1])
             for alias in org[1]["aliases"]:
                 self.org_lookup[alias] = (org[0], org[1])
@@ -135,7 +167,8 @@ class GitHubPlugin(BotCommander):
             for alias in org[1]["aliases"]:
                 rows.append([alias, org[0]])
 
-        send_info(data["channel"], "```{}```".format(tabulate(rows, headers=headers)), markdown=True)
+        send_info(data["channel"], "```{}```".format(
+            tabulate(rows, headers=headers)), markdown=True)
 
     def set_description_command(self, data, user_data):
         """
@@ -151,7 +184,8 @@ class GitHubPlugin(BotCommander):
             parser.add_argument('repo', type=str)
             parser.add_argument('description', type=str)
 
-            args, unknown = parser.parse_known_args(args=preformat_args_with_spaces(data["text"], 1))
+            args, unknown = parser.parse_known_args(
+                args=preformat_args_with_spaces(data["text"], 1))
             if len(unknown) > 0:
                 raise SystemExit()
 
@@ -183,7 +217,8 @@ class GitHubPlugin(BotCommander):
                 return
 
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(
+            user_data["name"]))
 
         # Check that the repo exists:
         if not (self.check_if_repo_exists(data, user_data, reponame, real_org)):
@@ -217,7 +252,8 @@ class GitHubPlugin(BotCommander):
             parser.add_argument('repo', type=str)
             parser.add_argument('homepage', type=str)
 
-            args, unknown = parser.parse_known_args(args=preformat_args_with_spaces(data["text"], 1))
+            args, unknown = parser.parse_known_args(
+                args=preformat_args_with_spaces(data["text"], 1))
             if len(unknown) > 0:
                 raise SystemExit()
 
@@ -260,7 +296,8 @@ class GitHubPlugin(BotCommander):
                 return
 
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(
+            user_data["name"]))
 
         # Check that the repo exists:
         if not (self.check_if_repo_exists(data, user_data, reponame, real_org)):
@@ -295,7 +332,8 @@ class GitHubPlugin(BotCommander):
             parser.add_argument('repo', type=str)
             parser.add_argument('permission', type=str)
 
-            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
+            args, unknown = parser.parse_known_args(
+                args=preformat_args(data["text"]))
             if len(unknown) > 0:
                 raise SystemExit()
 
@@ -338,7 +376,8 @@ class GitHubPlugin(BotCommander):
                 return
 
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(
+            user_data["name"]))
 
         # Check that the repo exists:
         if not (self.check_if_repo_exists(data, user_data, reponame, real_org)):
@@ -361,7 +400,8 @@ class GitHubPlugin(BotCommander):
 
         # So: GitHub ID is real - and the repo exists -- grant access:
         try:
-            self.add_outside_collab_to_repo(outside_collab_id, reponame, real_org, repo_access)
+            self.add_outside_collab_to_repo(
+                outside_collab_id, reponame, real_org, repo_access)
 
         except ValueError as ve:
             send_error(data["channel"],
@@ -397,7 +437,8 @@ class GitHubPlugin(BotCommander):
             parser.add_argument('team', type=str)
             parser.add_argument('role', type=str)
 
-            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
+            args, unknown = parser.parse_known_args(
+                args=preformat_args(data["text"]))
             if len(unknown) > 0:
                 raise SystemExit()
 
@@ -440,7 +481,8 @@ class GitHubPlugin(BotCommander):
                 return
 
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(
+            user_data["name"]))
 
         # Check if team exists, if it does return the id
         team_id = self.find_team_id_by_name(real_org, team_name)
@@ -500,7 +542,8 @@ class GitHubPlugin(BotCommander):
             parser.add_argument('new_repo', type=str)
             parser.add_argument('org', type=str)
 
-            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
+            args, unknown = parser.parse_known_args(
+                args=preformat_args(data["text"]))
             if len(unknown) > 0:
                 raise SystemExit()
 
@@ -531,7 +574,8 @@ class GitHubPlugin(BotCommander):
                 return
 
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(
+            user_data["name"]))
 
         # Check if the repo already exists:
         try:
@@ -563,7 +607,8 @@ class GitHubPlugin(BotCommander):
         # Grant the proper teams access to the repository:
         try:
             for perm_dict in ORGS[real_org]["new_repo_teams"]:
-                self.set_repo_permissions(repo_to_add, real_org, perm_dict["id"], perm_dict["perm"])
+                self.set_repo_permissions(repo_to_add, real_org, perm_dict[
+                                          "id"], perm_dict["perm"])
 
         except Exception as e:
             send_error(data["channel"],
@@ -572,14 +617,16 @@ class GitHubPlugin(BotCommander):
             return
 
         # All done!
-        message = "@{}: The new repo: {} has been created in {}.\n".format(user_data["name"], repo_to_add, real_org)
+        message = "@{}: The new repo: {} has been created in {}.\n".format(
+            user_data["name"], repo_to_add, real_org)
         message += "You can access the repo at: https://github.com/{org}/{repo}\n".format(org=real_org,
                                                                                           repo=repo_to_add)
 
         visibility = "PRIVATE" if visibility else "PUBLIC"
 
         message += "The repository is {visibility}.\n" \
-                   "You are free to set up the repo as you like.\n".format(visibility=visibility)
+                   "You are free to set up the repo as you like.\n".format(
+                       visibility=visibility)
 
         send_success(data["channel"], message)
 
@@ -596,7 +643,8 @@ class GitHubPlugin(BotCommander):
             parser.add_argument('repo', type=str)
             parser.add_argument('org', type=str)
 
-            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
+            args, unknown = parser.parse_known_args(
+                args=preformat_args(data["text"]))
             if len(unknown) > 0:
                 raise SystemExit()
 
@@ -627,7 +675,8 @@ class GitHubPlugin(BotCommander):
                 return
 
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(
+            user_data["name"]))
 
         # Check if the repo already exists:
         try:
@@ -672,7 +721,8 @@ class GitHubPlugin(BotCommander):
             parser.add_argument('repo', type=str)
             parser.add_argument('branch', type=str)
 
-            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
+            args, unknown = parser.parse_known_args(
+                args=preformat_args(data["text"]))
             if len(unknown) > 0:
                 raise SystemExit()
 
@@ -704,7 +754,8 @@ class GitHubPlugin(BotCommander):
                 return
 
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(
+            user_data["name"]))
 
         # Check that the repo exists:
         repo_data = self.check_gh_for_existing_repo(reponame, real_org)
@@ -716,7 +767,8 @@ class GitHubPlugin(BotCommander):
         # Check if the branch exists on that repo....
         if not (self.check_for_repo_branch(reponame, real_org, branch)):
             send_error(data["channel"],
-                       "@{}: This repository does not have the branch: `{}`.".format(user_data["name"], branch),
+                       "@{}: This repository does not have the branch: `{}`.".format(user_data[
+                                                                                     "name"], branch),
                        markdown=True)
             return False
 
@@ -744,7 +796,8 @@ class GitHubPlugin(BotCommander):
             parser.add_argument('branch', type=str)
             parser.add_argument('toggle', type=str)
 
-            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
+            args, unknown = parser.parse_known_args(
+                args=preformat_args(data["text"]))
             if len(unknown) > 0:
                 raise SystemExit()
 
@@ -785,7 +838,8 @@ class GitHubPlugin(BotCommander):
                 return
 
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(
+            user_data["name"]))
 
         # Check that the repo exists:
         repo_data = self.check_gh_for_existing_repo(reponame, real_org)
@@ -797,7 +851,8 @@ class GitHubPlugin(BotCommander):
         # Check if the branch exists on that repo....
         if not (self.check_for_repo_branch(reponame, real_org, branch)):
             send_error(data["channel"],
-                       "@{}: This repository does not have the branch: `{}`.".format(user_data["name"], branch),
+                       "@{}: This repository does not have the branch: `{}`.".format(user_data[
+                                                                                     "name"], branch),
                        markdown=True)
             return False
 
@@ -858,7 +913,8 @@ class GitHubPlugin(BotCommander):
         }
         api_part = 'repos/{}/{}'.format(org, repo_to_check)
 
-        response = requests.get('{}{}'.format(GITHUB_URL, api_part), headers=headers, timeout=10)
+        response = requests.get('{}{}'.format(
+            GITHUB_URL, api_part), headers=headers, timeout=10)
 
         if response.status_code == 200:
             return json.loads(response.text)
@@ -887,6 +943,68 @@ class GitHubPlugin(BotCommander):
                        "Here are the details: {}".format(user_data["name"], str(e)))
             return False
 
+    def get_repo_deploy_keys(self, data, user_data, reponame, real_org, **kwargs):
+        try:
+
+            return self.get_repo_deploy_keys_http(reponame, real_org, **kwargs)
+
+        except requests.exceptions.RequestException as re:
+            send_error(data["channel"],
+                       "@{}: Problem encountered while getting deploy keys from the repository.\n"
+                       "The response code from GitHub was: {}".format(user_data["name"], str(re)))
+            return False
+
+        except Exception as e:
+            send_error(data["channel"],
+                       "@{}: Problem encountered while parsing the response.\n"
+                       "Here are the details: {}".format(user_data["name"], str(e)))
+
+    def get_repo_deploy_key_by_id(self, data, user_data, reponame, real_org, deploy_key_id, **kwargs):
+        try:
+
+            return self.get_repo_deploy_key_by_id_http(reponame, real_org, deploy_key_id, **kwargs)
+
+        except requests.exceptions.RequestException as re:
+            send_error(data["channel"],
+                       "@{}: Problem encountered while getting deploy key from the repository.\n"
+                       "The response code from GitHub was: {}".format(user_data["name"], str(re)))
+            return False
+
+        except Exception as e:
+            send_error(data["channel"],
+                       "@{}: Problem encountered while parsing the response.\n"
+                       "Here are the details: {}".format(user_data["name"], str(e)))
+
+    def add_repo_deploy_key(self, data, user_data, reponame, real_org, title, deploy_key, readonly, **kwargs):
+        try:
+            return self.add_repo_deploy_key_http(reponame, real_org, title, deploy_key, readonly, **kwargs)
+
+        except requests.exceptions.RequestException as re:
+            send_error(data["channel"],
+                       "@{}: Problem encountered while adding deploy key to the repository.\n"
+                       "The response code from GitHub was: {}".format(user_data["name"], str(re)))
+            return False
+
+        except Exception as e:
+            send_error(data["channel"],
+                       "@{}: Problem encountered while parsing the response.\n"
+                       "Here are the details: {}".format(user_data["name"], str(e)))
+
+    def delete_repo_deploy_key(self, data, user_data, reponame, real_org, key_id, **kwargs):
+        try:
+            return self.delete_repo_deploy_key_http(reponame, real_org, key_id, **kwargs)
+
+        except requests.exceptions.RequestException as re:
+            send_error(data["channel"],
+                       "@{}: Problem encountered while deleting deploy key to the repository.\n"
+                       "The response code from GitHub was: {}".format(user_data["name"], str(re)))
+            return False
+
+        except Exception as e:
+            send_error(data["channel"],
+                       "@{}: Problem encountered while parsing the response.\n"
+                       "Here are the details: {}".format(user_data["name"], str(e)))
+
     def get_github_user(self, github_id):
         headers = {
             'Authorization': 'token {}'.format(self.token),
@@ -894,14 +1012,16 @@ class GitHubPlugin(BotCommander):
         }
         api_part = 'users/{}'.format(github_id)
 
-        response = requests.get('{}{}'.format(GITHUB_URL, api_part), headers=headers, timeout=10)
+        response = requests.get('{}{}'.format(
+            GITHUB_URL, api_part), headers=headers, timeout=10)
 
         if response.status_code == 404:
             return None
 
         if response.status_code != 200:
             message = 'Did not receive a proper status code from GitHub while checking if the user exists.\n' \
-                      'The status code received was: {}'.format(response.status_code)
+                      'The status code received was: {}'.format(
+                          response.status_code)
             raise requests.exceptions.RequestException(message)
 
         # return the user info:
@@ -954,7 +1074,8 @@ class GitHubPlugin(BotCommander):
 
         api_part = 'repos/{}/{}/pulls?state={}'.format(org, repo, state)
 
-        response = requests.get('{}{}'.format(GITHUB_URL, api_part), headers=headers, timeout=10)
+        response = requests.get('{}{}'.format(
+            GITHUB_URL, api_part), headers=headers, timeout=10)
 
         if response.status_code == 200:
             return response.json()
@@ -972,8 +1093,10 @@ class GitHubPlugin(BotCommander):
         data = {"permission": permission}
 
         # Add the outside collab to the repo:
-        api_part = 'repos/{}/{}/collaborators/{}'.format(real_org, repo_name, outside_collab_id)
-        response = requests.put('{}{}'.format(GITHUB_URL, api_part), data=json.dumps(data), headers=headers, timeout=10)
+        api_part = 'repos/{}/{}/collaborators/{}'.format(
+            real_org, repo_name, outside_collab_id)
+        response = requests.put('{}{}'.format(GITHUB_URL, api_part), data=json.dumps(
+            data), headers=headers, timeout=10)
 
         if response.status_code != 204:
             raise ValueError(response.status_code)
@@ -1051,7 +1174,8 @@ class GitHubPlugin(BotCommander):
         }
         api_part = 'repos/{}/{}/branches/{}'.format(org, repo, branch)
 
-        response = requests.get('{}{}'.format(GITHUB_URL, api_part), headers=headers, timeout=10)
+        response = requests.get('{}{}'.format(
+            GITHUB_URL, api_part), headers=headers, timeout=10)
 
         if response.status_code == 200:
             return True
@@ -1066,7 +1190,8 @@ class GitHubPlugin(BotCommander):
     def set_branch_protection(self, repo, org, branch, enabled):
         # TODO: Need to figure out how to do more complex things with this.
         #       Currently, this just does very simple enabling and disabling of branch protection
-        # See: https://developer.github.com/v3/repos/branches/#enabling-and-disabling-branch-protection
+        # See:
+        # https://developer.github.com/v3/repos/branches/#enabling-and-disabling-branch-protection
         headers = {
             'Authorization': 'token {}'.format(self.token),
             'Accept': "application/vnd.github.loki-preview+json"
@@ -1079,7 +1204,8 @@ class GitHubPlugin(BotCommander):
             }
         }
 
-        response = requests.patch('{}{}'.format(GITHUB_URL, api_part), data=json.dumps(data), headers=headers, timeout=10)
+        response = requests.patch('{}{}'.format(
+            GITHUB_URL, api_part), data=json.dumps(data), headers=headers, timeout=10)
 
         if response.status_code != 200:
             message = 'An error was encountered communicating with GitHub: Status Code: {}' \
@@ -1099,14 +1225,17 @@ class GitHubPlugin(BotCommander):
             'Accept': GITHUB_VERSION
         }
         api_part = 'orgs/{}/members/{}'.format(org, user["login"])
-        response = requests.get('{}{}'.format(GITHUB_URL, api_part), headers=headers, timeout=10)
+        response = requests.get('{}{}'.format(
+            GITHUB_URL, api_part), headers=headers, timeout=10)
 
-        # Per GitHub API, if 204, then already a member; if 404, then not a member:
+        # Per GitHub API, if 204, then already a member; if 404, then not a
+        # member:
         if response.status_code == 204:
             return True
 
         elif response.status_code != 404:
-            raise ValueError("GitHub Problem: Checking membership, status code: {}".format(response.status_code))
+            raise ValueError("GitHub Problem: Checking membership, status code: {}".format(
+                response.status_code))
 
         return False
 
@@ -1120,10 +1249,12 @@ class GitHubPlugin(BotCommander):
 
         # Add the GitHub user to the team:
         api_part = 'teams/{}/memberships/{}'.format(team_id, github_id)
-        response = requests.put('{}{}'.format(GITHUB_URL, api_part), data=json.dumps(data), headers=headers, timeout=10)
+        response = requests.put('{}{}'.format(GITHUB_URL, api_part), data=json.dumps(
+            data), headers=headers, timeout=10)
 
         if response.status_code != 200:
-            raise ValueError("GitHub Problem: Adding to team, status code: {}".format(response.status_code))
+            raise ValueError(
+                "GitHub Problem: Adding to team, status code: {}".format(response.status_code))
 
     def find_team_id_by_name(self, org, team_name):
         headers = {
@@ -1133,12 +1264,15 @@ class GitHubPlugin(BotCommander):
 
         # Get all teams inside the organzation:
         api_part = 'orgs/{}/teams'.format(org)
-        response = requests.get('{}{}'.format(GITHUB_URL, api_part), headers=headers, timeout=10)
+        response = requests.get('{}{}'.format(
+            GITHUB_URL, api_part), headers=headers, timeout=10)
 
         if response.status_code != 200:
-            raise ValueError("GitHub Problem: Could not list teams -- received error code: {}".format(response.status_code))
+            raise ValueError(
+                "GitHub Problem: Could not list teams -- received error code: {}".format(response.status_code))
 
-        # Check if the provided team_name belongs to a team inside the organization:
+        # Check if the provided team_name belongs to a team inside the
+        # organization:
         for x in response.json():
             if x["slug"] == team_name:
                 return x["id"]
@@ -1159,7 +1293,8 @@ class GitHubPlugin(BotCommander):
             parser.add_argument('repo', type=str)
             parser.add_argument('state', type=str)
 
-            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
+            args, unknown = parser.parse_known_args(
+                args=preformat_args(data["text"]))
             if len(unknown) > 0:
                 raise SystemExit()
 
@@ -1203,7 +1338,8 @@ class GitHubPlugin(BotCommander):
                 return
 
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(
+            user_data["name"]))
 
         # Check that the repo exists:
         repo_data = self.check_gh_for_existing_repo(reponame, real_org)
@@ -1213,7 +1349,8 @@ class GitHubPlugin(BotCommander):
             return
 
         # Grab all PRs [All states]
-        pull_requests = self.get_repo_prs(data, user_data, reponame, real_org, state)
+        pull_requests = self.get_repo_prs(
+            data, user_data, reponame, real_org, state)
         if not (pull_requests):
             if isinstance(pull_requests, list):
                 send_info(data["channel"],
@@ -1224,8 +1361,431 @@ class GitHubPlugin(BotCommander):
 
         rows = []
         for pr in pull_requests:
-            assignee = pr['assignee']['login'] if pr['assignee'] is not None else '-'
-            rows.append([pr['number'],pr['title'], pr['user']['login'], assignee,pr['state'].title()])
+            assignee = pr['assignee']['login'] if pr[
+                'assignee'] is not None else '-'
+            rows.append([pr['number'], pr['title'], pr['user'][
+                        'login'], assignee, pr['state'].title()])
         # Done:
         send_raw(data["channel"], text="Repository: *{}* \n\n```{}```".format(reponame, tabulate(rows, headers=headers,
                                                                                                  tablefmt='orgtbl')))
+
+    def get_repo_deploy_keys_http(self, repo, org, **kwargs):
+        """
+        List deploy keys associated with a repo.
+
+        :param repo:
+        :param org:
+        :param kwargs:
+        :return:
+        """
+        headers = {
+            'Authorization': 'token {}'.format(self.token),
+            'Accept': GITHUB_VERSION
+        }
+
+        api_part = 'repos/{}/{}/keys'.format(org, repo)
+
+        print(api_part)
+
+        response = requests.get('{}{}'.format(
+            GITHUB_URL, api_part), headers=headers, timeout=10)
+
+        print(response.json())
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            message = 'An error was encountered communicating with GitHub: Status Code: {}' \
+                .format(response.status_code)
+            raise requests.exceptions.RequestException(message)
+
+    def get_repo_deploy_key_by_id_http(self, repo, org, deploy_key_id, **kwargs):
+        """
+        List deploy keys associated with a repo.
+
+        :param repo:
+        :param org:
+        :param deploy_key_id:
+        :param kwargs:
+        :return:
+        """
+        headers = {
+            'Authorization': 'token {}'.format(self.token),
+            'Accept': GITHUB_VERSION
+        }
+
+        api_part = 'repos/{}/{}/keys/{}'.format(org, repo, deploy_key_id)
+
+        response = requests.get('{}{}'.format(
+            GITHUB_URL, api_part), headers=headers, timeout=10)
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            message = 'An error was encountered communicating with GitHub: Status Code: {}' \
+                .format(response.status_code)
+            raise requests.exceptions.RequestException(message)
+
+    def list_deploy_keys_command(self, data, user_data):
+        """
+        List the Deploy Keys for a repo.
+
+        Command is as follows: !ListKeys <organization> <repo>
+        :param data:
+        :return:
+        """
+        try:
+            parser = argparse.ArgumentParser()
+            parser.add_argument('org', type=str)
+            parser.add_argument('repo', type=str)
+
+            args, unknown = parser.parse_known_args(
+                args=preformat_args(data["text"]))
+            if len(unknown) > 0:
+                raise SystemExit()
+
+            args = vars(args)
+
+            # Check that we can use this org:
+            real_org = self.org_lookup[args["org"]][0]
+            reponame = extract_repo_name(args["repo"])
+
+        except KeyError as ke:
+            send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
+                       .format(user_data["name"]), markdown=True)
+            return
+
+        except SystemExit as _:
+            send_info(data["channel"], "@{}: `!ListKeys` usage is:\n```!ListKeys <OrgThatHasRepo> "
+                                       "<Repo>```\n"
+                                       "No special characters or spaces in the variables. \n"
+                                       "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
+                      .format(user_data["name"]), markdown=True)
+            return
+
+        # Auth?
+        if self.commands["!ListKeys"].get("auth"):
+            if not self.commands["!ListKeys"]["auth"]["plugin"].authenticate(
+                    data, user_data, **self.commands["!ListKeys"]["auth"]["kwargs"]):
+                return
+
+        # Output that we are doing work:
+        send_info(data["channel"], "@{}: Working, Please wait...".format(
+            user_data["name"]))
+
+        # Check that the repo exists:
+        repo_data = self.check_gh_for_existing_repo(reponame, real_org)
+        if not (repo_data):
+            send_error(data["channel"],
+                       "@{}: This repository does not exist in {}.".format(user_data["name"], real_org))
+            return
+
+        # Grab all Deploy Keys
+        deploy_keys = self.get_repo_deploy_keys(
+            data, user_data, reponame, real_org)
+
+        if not (deploy_keys):
+            if isinstance(deploy_keys, list):
+                send_info(data["channel"],
+                          "@{}: No deploy keys were found in *{}*.".format(user_data["name"], reponame))
+            return
+
+        headers = ["ID#", "Title", "Read-only", "Created"]
+
+        rows = []
+        for key in deploy_keys:
+            key_id = key['id']
+            key_title = key['title']
+            created = key['created_at']
+            # Set a default readonly state
+            readonly = 'True'
+            if not key['read_only']:
+                readonly = 'False'
+
+            rows.append([key['id'], key['title'], readonly, key['created_at']])
+        # Done:
+        send_raw(data["channel"], text="Deploy Keys: *{}* \n\n```{}```".format(reponame, tabulate(rows, headers=headers,
+                                                                                                  tablefmt='orgtbl')))
+
+    def add_repo_deploy_key_http(self, repo, org, title, deploy_key, readonly, **kwargs):
+        """
+        List deploy keys associated with a repo.
+
+        :param repo:
+        :param org:
+        :param title:
+        :param deploy_key:
+        :param readonly:
+        :param kwargs:
+        :return:
+        """
+        headers = {
+            'Authorization': 'token {}'.format(self.token),
+            'Accept': GITHUB_VERSION
+        }
+
+        api_part = 'repos/{}/{}/keys'.format(org, repo)
+
+        data = {
+            "title": title,
+            "key": deploy_key,
+            "read_only": readonly
+        }
+
+        response = requests.post(
+            '{}{}'.format(GITHUB_URL, api_part),
+            data=json.dumps(data),
+            headers=headers,
+            timeout=10
+        )
+
+        if response.status_code == 201:
+            return response.json()
+        else:
+            message = 'An error was encountered communicating with GitHub: Status Code: {}' \
+                .format(response.status_code)
+            raise requests.exceptions.RequestException(message)
+
+    def add_deploy_key_command(self, data, user_data):
+        """
+        Add a Deploy Keys for a repo.
+
+        Command is as follows: !AddKey <organization> <repo> "<title>" <readonly> "<key>"
+        :param data:
+        :return:
+        """
+        try:
+            parser = argparse.ArgumentParser()
+            parser.add_argument('org', type=str)
+            parser.add_argument('repo', type=str)
+            parser.add_argument('title', type=str)
+            parser.add_argument('readonly', type=str)
+            parser.add_argument('pubkey', type=str)
+
+            args, unknown = parser.parse_known_args(
+                args=preformat_args_with_spaces(data["text"], 1))
+            if len(unknown) > 0:
+                raise SystemExit()
+
+            args = vars(args)
+
+            # Check that we can use this org:
+            real_org = self.org_lookup[args["org"]][0]
+            reponame = extract_repo_name(args["repo"])
+
+            key_title = args["title"]
+            deploy_key = args["pubkey"]
+
+            # set default deploy key state
+            readonly = True
+            if args["readonly"].lower() != "true":
+                readonly = False
+
+        except KeyError as ke:
+            send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
+                       .format(user_data["name"]), markdown=True)
+            return
+
+        except SystemExit as _:
+            send_info(data["channel"], "@{}: `!AddKey` usage is:\n```!AddKey <OrgThatHasRepo> "
+                                       "<Repo> <KeyTitle> <ReadOnlyBool> \"<Key>\"```\n"
+                                       "No special characters or spaces in the variables. \n"
+                                       "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
+                      .format(user_data["name"]), markdown=True)
+            return
+
+        # Auth?
+        if self.commands["!AddKey"].get("auth"):
+            if not self.commands["!AddKey"]["auth"]["plugin"].authenticate(
+                    data, user_data, **self.commands["!AddKey"]["auth"]["kwargs"]):
+                return
+
+        # Output that we are doing work:
+        send_info(data["channel"], "@{}: Working, Please wait...".format(
+            user_data["name"]))
+
+        # Check that the repo exists:
+        repo_data = self.check_gh_for_existing_repo(reponame, real_org)
+        if not (repo_data):
+            send_error(data["channel"],
+                       "@{}: This repository does not exist in {}.".format(user_data["name"], real_org))
+            return
+
+        # Add the Deploy Key
+        result = self.add_repo_deploy_key(
+            data, user_data, reponame, real_org, key_title, deploy_key, readonly)
+
+        print(result)
+        if not result.get('id'):
+            send_error(data["channel"],
+                       "@{}: Adding deploy key failed.".format(user_data["name"], reponame))
+            return
+
+        # Done:
+        send_raw(data["channel"], text="Deploy Key *{}* with ID *{}* successfully added to *{}*\n\n".format(
+            result['title'], result['id'], reponame))
+
+    def delete_repo_deploy_key_http(self, repo, org, key_id, **kwargs):
+        """
+        List deploy keys associated with a repo.
+
+        :param repo:
+        :param org:
+        :param key_id:
+        :param kwargs:
+        :return:
+        """
+        headers = {
+            'Authorization': 'token {}'.format(self.token),
+            'Accept': GITHUB_VERSION
+        }
+
+        api_part = 'repos/{}/{}/keys/{}'.format(org, repo, key_id)
+
+        response = requests.delete('{}{}'.format(
+            GITHUB_URL, api_part), headers=headers, timeout=10)
+
+        if response.status_code == 204:
+            return
+        else:
+            message = 'An error was encountered communicating with GitHub: Status Code: {}' \
+                .format(response.status_code)
+            raise requests.exceptions.RequestException(message)
+
+    def delete_deploy_key_command(self, data, user_data):
+        """
+        Delete a Deploy Keys from a repo.
+
+        Command is as follows: !DeleteKey <organization> <repo> <id>
+        :param data:
+        :return:
+        """
+        try:
+            parser = argparse.ArgumentParser()
+            parser.add_argument('org', type=str)
+            parser.add_argument('repo', type=str)
+            parser.add_argument('id', type=str)
+
+            args, unknown = parser.parse_known_args(
+                args=preformat_args(data["text"]))
+            if len(unknown) > 0:
+                raise SystemExit()
+
+            args = vars(args)
+
+            # Check that we can use this org:
+            real_org = self.org_lookup[args["org"]][0]
+            reponame = extract_repo_name(args["repo"])
+            key_id = args['id']
+
+        except KeyError as ke:
+            send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
+                       .format(user_data["name"]), markdown=True)
+            return
+
+        except SystemExit as _:
+            send_info(data["channel"], "@{}: `!DeleteKey` usage is:\n```!DeleteKey <OrgThatHasRepo> "
+                                       "<KeyId>```\n"
+                                       "No special characters or spaces in the variables. \n"
+                                       "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
+                      .format(user_data["name"]), markdown=True)
+            return
+
+        # Auth?
+        if self.commands["!DeleteKey"].get("auth"):
+            if not self.commands["!DeleteKey"]["auth"]["plugin"].authenticate(
+                    data, user_data, **self.commands["!DeleteKey"]["auth"]["kwargs"]):
+                return
+
+        # Output that we are doing work:
+        send_info(data["channel"], "@{}: Working, Please wait...".format(
+            user_data["name"]))
+
+        # Check that the repo exists:
+        repo_data = self.check_gh_for_existing_repo(reponame, real_org)
+        if not (repo_data):
+            send_error(data["channel"],
+                       "@{}: This repository does not exist in {}.".format(user_data["name"], real_org))
+            return
+
+        # Delete the Deploy Key
+        result = self.delete_repo_deploy_key(
+            data, user_data, reponame, real_org, key_id)
+
+        if result == False:
+            send_info(data["channel"],
+                      "@{}: Error deleting deploy key ID *{}*.".format(user_data["name"], key_id))
+            return
+
+        # Done:
+        send_raw(data["channel"], text="Deploy Key ID *{}* successfully deleted from *{}*\n\n".format(
+            key_id, reponame))
+
+    def get_deploy_key_command(self, data, user_data):
+        """
+        List the Deploy Keys for a repo.
+
+        Command is as follows: !ListKeys <organization> <repo> <id>
+        :param data:
+        :return:
+        """
+        try:
+            parser = argparse.ArgumentParser()
+            parser.add_argument('org', type=str)
+            parser.add_argument('repo', type=str)
+            parser.add_argument('id', type=str)
+
+            args, unknown = parser.parse_known_args(
+                args=preformat_args(data["text"]))
+            if len(unknown) > 0:
+                raise SystemExit()
+
+            args = vars(args)
+
+            # Check that we can use this org:
+            real_org = self.org_lookup[args["org"]][0]
+            reponame = extract_repo_name(args["repo"])
+            deploy_key_id = args["id"]
+
+        except KeyError as ke:
+            send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
+                       .format(user_data["name"]), markdown=True)
+            return
+
+        except SystemExit as _:
+            send_info(data["channel"], "@{}: `!GetKey` usage is:\n```!GetKey <OrgThatHasRepo> "
+                                       "<Repo> <KeyID>```\n"
+                                       "No special characters or spaces in the variables. \n"
+                                       "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
+                      .format(user_data["name"]), markdown=True)
+            return
+
+        # Auth?
+        if self.commands["!GetKey"].get("auth"):
+            if not self.commands["!GetKey"]["auth"]["plugin"].authenticate(
+                    data, user_data, **self.commands["!GetKey"]["auth"]["kwargs"]):
+                return
+
+        # Output that we are doing work:
+        send_info(data["channel"], "@{}: Working, Please wait...".format(
+            user_data["name"]))
+
+        # Check that the repo exists:
+        repo_data = self.check_gh_for_existing_repo(reponame, real_org)
+        if not (repo_data):
+            send_error(data["channel"],
+                       "@{}: This repository does not exist in {}.".format(user_data["name"], real_org))
+            return
+
+        # Grab all Deploy Keys
+        deploy_key = self.get_repo_deploy_key_by_id(
+            data, user_data, reponame, real_org, deploy_key_id)
+
+        if deploy_key == False:
+            send_info(data["channel"],
+                      "@{}: Error Retrieving Deploy Key *{}*.".format(user_data["name"], deploy_key_id))
+            return
+
+        # Done:
+        send_info(data["channel"], "@{}: Deploy Key ID *{}*: ```{}```"
+                  .format(user_data["name"], deploy_key_id, deploy_key['key']), markdown=True)

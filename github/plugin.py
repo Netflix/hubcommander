@@ -289,8 +289,7 @@ class GitHubPlugin(BotCommander):
                 return
 
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(
-            user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
 
         # Check that the repo exists:
         if not (self.check_if_repo_exists(data, user_data, reponame, real_org)):
@@ -609,7 +608,7 @@ class GitHubPlugin(BotCommander):
         visibility = "PRIVATE" if visibility else "PUBLIC"
 
         message += "The repository is {visibility}.\n" \
-                   "You are free to set up the repo as you like.\n".format(isibility=visibility)
+                   "You are free to set up the repo as you like.\n".format(visibility=visibility)
 
         send_success(data["channel"], message)
 
@@ -1193,8 +1192,7 @@ class GitHubPlugin(BotCommander):
         api_part = 'orgs/{}/members/{}'.format(org, user["login"])
         response = requests.get('{}{}'.format(GITHUB_URL, api_part), headers=headers, timeout=10)
 
-        # Per GitHub API, if 204, then already a member; if 404, then not a
-        # member:
+        # Per GitHub API, if 204, then already a member; if 404, then not a member:
         if response.status_code == 204:
             return True
 
@@ -1308,7 +1306,8 @@ class GitHubPlugin(BotCommander):
         pull_requests = self.get_repo_prs(data, user_data, reponame, real_org, state)
         if not (pull_requests):
             if isinstance(pull_requests, list):
-                send_info(data["channel"], "@{}: No matching pull requests were found in *{}*.".format(user_data["name"], reponame))
+                send_info(data["channel"],
+                          "@{}: No matching pull requests were found in *{}*.".format(user_data["name"], reponame))
             return
 
         headers = ["#PR", "Title", "Opened by", "Assignee", "State"]
@@ -1316,7 +1315,7 @@ class GitHubPlugin(BotCommander):
         rows = []
         for pr in pull_requests:
             assignee = pr['assignee']['login'] if pr['assignee'] is not None else '-'
-            rows.append([pr['number'], pr['title'], pr['user']['login'], assignee, pr['state'].title()])
+            rows.append([pr['number'],pr['title'], pr['user']['login'], assignee,pr['state'].title()])
         # Done:
         send_raw(data["channel"], text="Repository: *{}* \n\n```{}```".format(reponame, tabulate(rows, headers=headers, tablefmt='orgtbl')))
 

@@ -1385,12 +1385,8 @@ class GitHubPlugin(BotCommander):
 
         api_part = 'repos/{}/{}/keys'.format(org, repo)
 
-        print(api_part)
-
         response = requests.get('{}{}'.format(
             GITHUB_URL, api_part), headers=headers, timeout=10)
-
-        print(response.json())
 
         if response.status_code == 200:
             return response.json()
@@ -1615,7 +1611,6 @@ class GitHubPlugin(BotCommander):
         result = self.add_repo_deploy_key(
             data, user_data, reponame, real_org, key_title, deploy_key, readonly)
 
-        print(result)
         if not result.get('id'):
             send_error(data["channel"],
                        "@{}: Adding deploy key failed.".format(user_data["name"], reponame))

@@ -46,8 +46,8 @@ class GitHubPlugin(BotCommander):
                 "func": self.add_outside_collab_command,
                 "user_data_required": True,
                 "help": "Adds an outside collaborator to a specific repository in a specific GitHub organization.",
-                "permitted_permissions": ["push", "pull"],      # To grant admin, add this to the config for
-                "enabled": True     # this command in the config.py.
+                "permitted_permissions": ["push", "pull"],   # To grant admin, add this to the config for
+                "enabled": True                              # this command in the config.py.
             },
             "!SetDescription": {
                 "command": "!SetDescription",
@@ -1299,7 +1299,8 @@ class GitHubPlugin(BotCommander):
         # Check that the repo exists:
         repo_data = self.check_gh_for_existing_repo(reponame, real_org)
         if not (repo_data):
-            send_error(data["channel"], "@{}: This repository does not exist in {}.".format(user_data["name"], real_org))
+            send_error(data["channel"],
+                       "@{}: This repository does not exist in {}.".format(user_data["name"], real_org))
             return
 
         # Grab all PRs [All states]
@@ -1317,7 +1318,8 @@ class GitHubPlugin(BotCommander):
             assignee = pr['assignee']['login'] if pr['assignee'] is not None else '-'
             rows.append([pr['number'],pr['title'], pr['user']['login'], assignee,pr['state'].title()])
         # Done:
-        send_raw(data["channel"], text="Repository: *{}* \n\n```{}```".format(reponame, tabulate(rows, headers=headers, tablefmt='orgtbl')))
+        send_raw(data["channel"], text="Repository: *{}* \n\n```{}```".format(reponame, tabulate(rows, headers=headers,
+                                                                                                 tablefmt='orgtbl')))
 
     def get_repo_deploy_keys_http(self, repo, org, **kwargs):
         """

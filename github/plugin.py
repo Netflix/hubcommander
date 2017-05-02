@@ -1556,7 +1556,7 @@ class GitHubPlugin(BotCommander):
         result = self.add_repo_deploy_key(data, user_data, reponame, real_org, key_title, deploy_key, readonly)
 
         # If we have an error due to invalid key, we are returning False from the API response method
-        if result == False:
+        if not result:
             send_error(data["channel"], "@{}: The deploy key entered was invalid.".format(user_data["name"], reponame))
             return
 

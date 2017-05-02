@@ -1482,6 +1482,9 @@ class GitHubPlugin(BotCommander):
 
         if response.status_code == 201:
             return response.json()
+        elif response.status_code == 422:
+            # Deploy key is invalid
+            return False
         else:
             message = 'An error was encountered communicating with GitHub: Status Code: {}' \
                 .format(response.status_code)
@@ -1491,7 +1494,7 @@ class GitHubPlugin(BotCommander):
         """
         Add a Deploy Keys for a repo.
 
-        Command is as follows: !AddKey <organization> <repo> "<title>" <readonly> "<key>"
+        Command is as follows: !AddKey <organization> <repo> <title> <readonly> "<key>"
         :param data:
         :return:
         """
@@ -1551,6 +1554,11 @@ class GitHubPlugin(BotCommander):
 
         # Add the Deploy Key
         result = self.add_repo_deploy_key(data, user_data, reponame, real_org, key_title, deploy_key, readonly)
+
+        # If we have an error due to invalid key, we are returning False from the API response method
+        if not result:
+            send_error(data["channel"], "@{}: The deploy key entered was invalid.".format(user_data["name"], reponame))
+            return
 
         if not result.get('id'):
             send_error(data["channel"], "@{}: Adding deploy key failed.".format(user_data["name"], reponame))
@@ -1616,7 +1624,7 @@ class GitHubPlugin(BotCommander):
             return
 
         except SystemExit as _:
-            send_info(data["channel"], "@{}: `!DeleteKey` usage is:\n```!DeleteKey <OrgThatHasRepo> "
+            send_info(data["channel"], "@{}: `!DeleteKey` usage is:\n```!DeleteKey <OrgThatHasRepo> <Repo> "
                                        "<KeyId>```\n"
                                        "No special characters or spaces in the variables. \n"
                                        "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "

@@ -13,8 +13,8 @@ import time
 import requests
 
 from hubcommander.bot_components.bot_classes import BotCommander
-from hubcommander.bot_components.slack_comm import extract_repo_name, send_error, send_info, preformat_args, \
-    send_success
+from hubcommander.bot_components.slack_comm import send_error, send_info, send_success
+from hubcommander.bot_components.parse_functions import preformat_args, extract_repo_name
 from .config import USER_COMMAND_DICT, USER_AGENT
 
 TRAVIS_URLS = {

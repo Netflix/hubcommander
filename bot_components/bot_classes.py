@@ -21,10 +21,16 @@ class BotCommander(BotPlugin):
         super().__init__()
         self.commands = {}
 
+    def setup(self, secrets, **kwargs):
+        pass
+
 
 class BotAuthPlugin(BotPlugin):
     def __init__(self):
         super().__init__()
+
+    def setup(self, secrets, **kwargs):
+        pass
 
     def authenticate(self, *args, **kwargs):
         raise NotImplementedError()

@@ -10,6 +10,7 @@ from unittest.mock import MagicMock
 
 import pytest
 import slackclient
+from bot_components.bot_classes import BotAuthPlugin
 
 USER_DATA = {
     "ok": True,
@@ -82,3 +83,24 @@ def slack_client():
     hubcommander.bot_components.slack_comm.bot_components.SLACK_CLIENT = sc
 
     return sc
+
+
+@pytest.fixture(scope="function")
+def user_data(slack_client):
+    import hubcommander.bot_components.slack_comm
+    hubcommander.bot_components.slack_comm.bot_components.SLACK_CLIENT = slack_client
+
+    from bot_components.slack_comm import get_user_data
+    return get_user_data(USER_DATA)[0]
+
+
+@pytest.fixture(scope="function")
+def auth_plugin():
+    class TestAuthPlugin(BotAuthPlugin):
+        def __init__(self):
+            super().__init__()
+
+        def authenticate(self, data, user_data, should_auth=False):
+            return should_auth
+
+    return TestAuthPlugin()

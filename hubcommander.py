@@ -50,7 +50,7 @@ class HubCommander(Plugin):
             return
 
         # Only process if it starts with one of our GitHub commands:
-        command_prefix = data["text"].split(" ")[0].lower()
+        command_prefix = data["message"]["text"].split(" ")[0].lower()
         if COMMANDS.get(command_prefix):
             process_the_command(data, command_prefix)
 

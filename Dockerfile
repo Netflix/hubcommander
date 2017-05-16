@@ -48,4 +48,4 @@ ENV SLACK_TOKEN="REPLACEMEINCMDLINE" \
     DUO_SKEY="REPLACEMEINCMDLINE"
 
 # Installation complete!  Ensure that things can run properly:
-ENTRYPOINT ["/bin/bash", "-c", "./launch_in_docker.sh", "2>&1", "/runninglog.txt"]
+ENTRYPOINT ["/bin/bash", "-c", "./launch_in_docker.sh"]

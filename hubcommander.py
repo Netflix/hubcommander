@@ -24,25 +24,12 @@ def print_help(data):
         text += txt
 
     text += "`!Help` - This command."
-    text += "`!repeat` - Repeat some text back to me.\n"
 
     send_info(data["channel"], text, markdown=True)
 
 
-def repeat_text(data):
-    """
-    Repeat text back to user
-    :param data:
-    :return:
-    """
-
-    new_text = data['text'].split(' ', 1)[1]
-    send_info(data["channel"], new_text, markdown=True)
-
-
 COMMANDS = {
     "!help": {"func": print_help, "user_data_required": False},
-    "!repeat": {"func": repeat_text, "user_data_required": False},
 }
 
 

@@ -1,4 +1,4 @@
 
-USER_AGENT = "Travis/NetflixNathanExplosion1.0.0"
+USER_AGENT = "YOUR_USER_AGENT_FOR_TRAVIS_CI_HERE"
 
 USER_COMMAND_DICT = {}

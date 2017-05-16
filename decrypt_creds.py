@@ -13,9 +13,9 @@ def get_credentials():
     return {
         # Minimum
         "SLACK": os.environ["SLACK_TOKEN"],
-        "GITHUB": os.environ["GITHUB_TOKEN"],
 
         # Optional:
+        "GITHUB": os.environ.get("GITHUB_TOKEN"),
         "TRAVIS_PRO_USER": os.environ.get("TRAVIS_PRO_USER"),
         "TRAVIS_PRO_ID": os.environ.get("TRAVIS_PRO_ID"),
         "TRAVIS_PRO_TOKEN": os.environ.get("TRAVIS_PRO_TOKEN"),

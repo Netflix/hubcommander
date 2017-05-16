@@ -44,6 +44,14 @@ class TravisPlugin(BotCommander):
         self.credentials = None
 
     def setup(self, secrets, **kwargs):
+        # GitHub is a dependency:
+        from hubcommander.command_plugins.enabled_plugins import COMMAND_PLUGINS
+        if not COMMAND_PLUGINS.get("github"):
+            self.commands = {}
+            print("[X] Travis CI Plugin is not enabling any commands because"
+                  " the GitHub plugin is not enabled.")
+            return
+
         self.credentials = {
             "pro": {
                 "user": secrets["TRAVIS_PRO_USER"],
@@ -69,7 +77,8 @@ class TravisPlugin(BotCommander):
         :param data:
         :return:
         """
-        from hubcommander.command_plugins.enabled_plugins import GITHUB_PLUGIN
+        from hubcommander.command_plugins.enabled_plugins import COMMAND_PLUGINS
+        github_plugin = COMMAND_PLUGINS["github"]
         try:
             parser = argparse.ArgumentParser()
             parser.add_argument('org', type=str)
@@ -84,7 +93,7 @@ class TravisPlugin(BotCommander):
             repo_to_set = extract_repo_name(args["repo"])
 
             # Check that we can use this org:
-            real_org = GITHUB_PLUGIN.org_lookup[args["org"]][0]
+            real_org = github_plugin.org_lookup[args["org"]][0]
 
         except KeyError as _:
             send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
@@ -109,7 +118,7 @@ class TravisPlugin(BotCommander):
 
         # Get the repo information from GitHub:
         try:
-            repo_result = GITHUB_PLUGIN.check_gh_for_existing_repo(repo_to_set, real_org)
+            repo_result = github_plugin.check_gh_for_existing_repo(repo_to_set, real_org)
 
             if not repo_result:
                 send_error(data["channel"],

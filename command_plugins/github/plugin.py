@@ -1223,17 +1223,24 @@ class GitHubPlugin(BotCommander):
 
         # Get all teams inside the organzation:
         api_part = 'orgs/{}/teams'.format(org)
-        response = requests.get('{}{}'.format(GITHUB_URL, api_part), headers=headers, timeout=10)
+        url = '{}{}'.format(GITHUB_URL, api_part)
 
-        if response.status_code != 200:
-            raise ValueError("GitHub Problem: Could not list teams -- received error code: {}".format(response.status_code))
+        while True:
+            response = requests.get(url, headers=headers, timeout=10)
 
-        # Check if the provided team_name belongs to a team inside the organization:
-        for x in response.json():
-            if x["slug"] == team_name:
-                return x["id"]
+            if response.status_code != 200:
+                raise ValueError("GitHub Problem: Could not list teams -- received error code: {}"
+                                 .format(response.status_code))
 
-        return False
+            # Check if the provided team_name belongs to a team inside the organization:
+            for x in response.json():
+                if x["slug"] == team_name:
+                    return x["id"]
+
+            if "next" in response.links:
+                url = response.links["next"]["url"]
+            else:
+                return False
 
     def list_pull_requests(self, data, user_data):
         """

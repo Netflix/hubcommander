@@ -46,11 +46,11 @@ def test_extract_repo_name():
         "www.foo.com": "<http://www.foo.com|www.foo.com>",
         "foo": "foo",
         "HubCommander": "HubCommander",
-        "netflix.github.com": "<https://netflix.github.com|netflix.github.com>"
+        "netflix.github.io": "<https://netflix.github.io|netflix.github.io>"
     }
 
     for repo, uri in test_strings.items():
-        assert extract_repo_name(uri) == repo
+        assert extract_repo_name(None, uri) == repo
 
 
 def test_parse_toggles():
@@ -58,10 +58,10 @@ def test_parse_toggles():
         TOGGLE_OFF_VALUES, ParseException
 
     for toggle in TOGGLE_ON_VALUES:
-        assert parse_toggles(toggle)
+        assert parse_toggles(None, toggle)
 
     for toggle in TOGGLE_OFF_VALUES:
-        assert not parse_toggles(toggle)
+        assert not parse_toggles(None, toggle)
 
     with pytest.raises(ParseException):
-        parse_toggles("NotAProperToggle")
+        parse_toggles(None, "NotAProperToggle")

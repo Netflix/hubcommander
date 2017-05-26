@@ -22,6 +22,10 @@ class CantDuoUserError(Exception):
     pass
 
 
+class NoSecretsProvidedError(Exception):
+    pass
+
+
 class DuoPlugin(BotAuthPlugin):
     def __init__(self):
         super().__init__()
@@ -29,6 +33,9 @@ class DuoPlugin(BotAuthPlugin):
         self.client = None
 
     def setup(self, secrets, **kwargs):
+        if not secrets.get("DUO_IKEY") or not secrets.get("DUO_SKEY") or not secrets.get("DUO_HOST"):
+            raise NoSecretsProvidedError("Must provide secrets to enable authentication.")
+
         self.client = Client(secrets["DUO_IKEY"], secrets["DUO_SKEY"], secrets["DUO_HOST"])
 
     def authenticate(self, data, user_data, **kwargs):

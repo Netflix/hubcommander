@@ -89,11 +89,12 @@ def preformat_args_with_spaces(text, num_quoted):
     return space_delimited + quotes
 
 
-def extract_repo_name(reponame, **kwargs):
+def extract_repo_name(plugin_obj, reponame, **kwargs):
     """
     Reponames can be FQDN's. Slack has an annoying habit of sending over URL's like so:
     <http://www.foo.com|www.foo.com>
     ^^ Need to pull out the URL. In our case, we care only about the label, which is the last part between | and >
+    :param plugin_obj: Not used
     :param reponame:
     :return:
     """
@@ -105,9 +106,10 @@ def extract_repo_name(reponame, **kwargs):
     return split_repo.replace(">", "")
 
 
-def parse_toggles(toggle, toggle_type="toggle", **kwargs):
+def parse_toggles(plugin_obj, toggle, toggle_type="toggle", **kwargs):
     """
     Parses typical toggle values, like off, on, enabled, disabled, true, false, etc.
+    :param plugin_obj: Not used
     :param toggle_type:
     :param toggle:
     :return:

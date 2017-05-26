@@ -57,26 +57,46 @@ def format_help_text(data, user_data, **kwargs):
     )
 
 
-def perform_additional_verification(args, **kwargs):
+def perform_additional_verification(plugin_obj, args, **kwargs):
+    """
+    This will run the custom verification functions that you can set for parameters.
+
+    This will also, by default, lowercase all values that arrive. This behavior can be disabled
+    via the lowercase=False flag for the argument.
+    :param plugin_obj:
+    :param args:
+    :param kwargs:
+    :return:
+    """
     for at in ARG_TYPE:
         if kwargs.get(at):
             for argument in kwargs[at]:
-                if argument.get("validation_func"):
-                    validation_kwargs = {}
-                    if argument.get("validation_func_kwargs"):
-                        validation_kwargs = argument["validation_func_kwargs"]
+                # Perform case changing logic if required (lowercase by default)
+                real_arg_name = argument["name"].replace("--", "")
+                if args.get(real_arg_name):
+                    if type(args[real_arg_name]) is str:
+                        if argument.get("uppercase", False):
+                            args[real_arg_name] = args[real_arg_name].upper()
 
-                    real_arg_name = argument["name"].replace("--", "")
-                    args[real_arg_name] = argument["validation_func"](
-                        args[real_arg_name], **validation_kwargs
-                    )
+                        elif argument.get("lowercase", True):
+                            args[real_arg_name] = args[real_arg_name].lower()
+
+                    # Perform custom validation if needed:
+                    if argument.get("validation_func"):
+                        validation_kwargs = {}
+                        if argument.get("validation_func_kwargs"):
+                            validation_kwargs = argument["validation_func_kwargs"]
+
+                        args[real_arg_name] = argument["validation_func"](
+                            plugin_obj, args[real_arg_name], **validation_kwargs
+                        )
 
     return args
 
 
 def hubcommander_command(**kwargs):
     def command_decorator(func):
-        def decorated_command(obj, data, user_data):
+        def decorated_command(plugin_obj, data, user_data):
             parser = argparse.ArgumentParser(prog=kwargs["name"],
                                              description=kwargs["description"],
                                              usage=kwargs["usage"])
@@ -86,6 +106,28 @@ def hubcommander_command(**kwargs):
             for at in arg_type:
                 if kwargs.get(at):
                     for argument in kwargs[at]:
+                        # If there is a list of available values, then ensure that they are added in for argparse to
+                        # process properly. This can be done 1 of two ways:
+                        #  1.) [Not recommended] Use argparse directly by passing in a fixed list within
+                        #       `properties["choices"]`
+                        #
+                        #  2.) [Recommended] Add `choices` outside of `properties` where you can define where
+                        #      the list of values appear within the Plugin's command config. This is
+                        #      preferred, because it reflects how the command is actually configured after the plugin's
+                        #      `setup()` method is run.
+                        #
+                        #      To make use of this properly, you need to have the help text contain: "{values}"
+                        #      This will then ensure that the list of values are properly in there.
+                        ##
+                        if argument.get("choices"):
+                            # Add the dynamic choices:
+                            argument["properties"]["choices"] = plugin_obj.commands[kwargs["name"]][argument["choices"]]
+
+                            # Fix the help text:
+                            argument["properties"]["help"] = argument["properties"]["help"].format(
+                                values=", ".join(plugin_obj.commands[kwargs["name"]][argument["choices"]])
+                            )
+
                         parser.add_argument(argument["name"], **argument["properties"])
 
             # Remove the command from the command string:
@@ -99,15 +141,20 @@ def hubcommander_command(**kwargs):
 
             # Perform additional verification:
             try:
-                args = perform_additional_verification(args, **kwargs)
+                args = perform_additional_verification(plugin_obj, args, **kwargs)
             except ParseException as pe:
                 send_error(data["channel"], pe.format_proper_usage(user_data["name"]),
+                           markdown=True)
+                return
+            except Exception as e:
+                send_error(data["channel"], "An exception was encountered while running validation for the input. "
+                                            "The exception details are: `{}`".format(str(e)),
                            markdown=True)
                 return
 
             # Run the next function:
             data["command_name"] = kwargs["name"]
-            return func(obj, data, user_data, **args)
+            return func(plugin_obj, data, user_data, **args)
 
         return decorated_command
 

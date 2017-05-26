@@ -129,7 +129,7 @@ def test_hubcommander_command_with_custom_validation(user_data, slack_client):
 
     proper_usage_text = ""
     try:
-        parse_toggles("WillFail", toggle_type="<enablement flag>")
+        parse_toggles(tc, "WillFail", toggle_type="<enablement flag>")
     except ParseException as pe:
         proper_usage_text = pe.format_proper_usage(user_data["name"])
 
@@ -263,3 +263,87 @@ def test_auth_decorator(user_data, slack_client, auth_plugin):
     data = dict(text="!OptionalArgs required --optional some_optional --optional2 some_optional2")
     assert tc.optional_arg_command(data, user_data)
     assert not tc.optional_fail_arg_command(data, user_data)
+
+
+def test_help_command_with_list(user_data, slack_client):
+    valid_values = ["one", "two", "three"]
+
+    verify_command_kwargs = dict(
+        name="!TestCommand",
+        usage="!TestCommand <testThing>",
+        description="This is a test command to test help text for things in lists",
+        required=[
+            dict(name="test_thing", properties=dict(type=str, help="Must be one of: `{values}`"),
+                 choices="valid_values")
+        ]
+    )
+
+    class TestCommands:
+        def __init__(self):
+            self.commands = {
+                "!TestCommand": {
+                    "valid_values": valid_values
+                }
+            }
+
+        @hubcommander_command(**verify_command_kwargs)
+        def the_command(self, data, user_data, test_thing):
+            assert True
+
+    tc = TestCommands()
+
+    data = dict(text="!TestCommand one")
+    tc.the_command(data, user_data)
+
+    data = dict(text="!TestCommand", channel="12345")
+    tc.the_command(data, user_data)
+
+    help_text = format_help_text(data, user_data, **verify_command_kwargs)
+    attachment = {
+        "text": help_text,
+        "color": WORKING_COLOR,
+        "mrkdwn_in": ["text"]
+    }
+    slack_client.api_call.assert_called_with("chat.postMessage", channel="12345", as_user=True,
+                                             attachments=json.dumps([attachment]), text=" ")
+
+    data = dict(text="!TestCommand alskjfasdlkf", channel="12345")
+    tc.the_command(data, user_data)
+    attachment = {
+        "text": help_text,
+        "color": WORKING_COLOR,
+        "mrkdwn_in": ["text"]
+    }
+    slack_client.api_call.assert_called_with("chat.postMessage", channel="12345", as_user=True,
+                                             attachments=json.dumps([attachment]), text=" ")
+
+
+def test_uppercase_and_lowercasing(user_data, slack_client):
+    class TestCommands:
+        def __init__(self):
+            pass
+
+        @hubcommander_command(
+            name="!TestCommand",
+            usage="!TestCommand <arg1> <arg2> <arg3>",
+            description="This is a test command to make sure that casing is correct.",
+            required=[
+                dict(name="arg1", properties=dict(type=str, help="NoT AlL LoWeRCaSE"),
+                     lowercase=False),
+                dict(name="arg2", properties=dict(type=str, help="all lowercase")),
+                dict(name="arg3", properties=dict(type=str, help="ALL UPPERCASE"),
+                     uppercase=True)
+            ],
+        )
+        def pass_command(self, data, user_data, arg1, arg2, arg3):
+            assert self
+            assert data
+            assert user_data
+            assert arg1 == "NoT AlL LoWeRCaSE"
+            assert arg2 == "all lowercase"
+            assert arg3 == "ALL UPPERCASE"
+
+    tc = TestCommands()
+
+    data = dict(text="!TestCommand \"NoT AlL LoWeRCaSE\" \"ALL lOWERcASE\" \"all Uppercase\"")
+    tc.pass_command(data, user_data)

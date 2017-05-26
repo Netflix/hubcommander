@@ -1,29 +1,28 @@
 """
-.. module: hubcommander.github.plugin
+.. module: hubcommander.command_plugins.github.plugin
     :platform: Unix
     :copyright: (c) 2017 by Netflix Inc., see AUTHORS for more
     :license: Apache, see LICENSE for more details.
 
 .. moduleauthor:: Mike Grima <mgrima@netflix.com>
 """
-import argparse
 import json
 
 import requests
 import time
-import validators
 from tabulate import tabulate
 
 from hubcommander.bot_components.bot_classes import BotCommander
+from hubcommander.bot_components.decorators import hubcommander_command, auth
 from hubcommander.bot_components.slack_comm import send_info, send_success, send_error, send_raw
-from hubcommander.bot_components.parse_functions import TOGGLE_ON_VALUES, TOGGLE_OFF_VALUES, preformat_args, \
-    preformat_args_with_spaces, extract_repo_name, parse_toggles
+from hubcommander.bot_components.parse_functions import extract_repo_name, parse_toggles
 from hubcommander.command_plugins.github.config import (GITHUB_URL, GITHUB_VERSION, ORGS,
-                                        USER_COMMAND_DICT)
+                                                        USER_COMMAND_DICT)
+from hubcommander.command_plugins.github.parse_functions import lookup_real_org, validate_homepage
+from hubcommander.command_plugins.github.decorators import repo_must_exist, github_user_exists, branch_must_exist
 
 
 class GitHubPlugin(BotCommander):
-
     def __init__(self):
         super().__init__()
 
@@ -47,8 +46,8 @@ class GitHubPlugin(BotCommander):
                 "func": self.add_outside_collab_command,
                 "user_data_required": True,
                 "help": "Adds an outside collaborator to a specific repository in a specific GitHub organization.",
-                "permitted_permissions": ["push", "pull"],   # To grant admin, add this to the config for
-                "enabled": True                              # this command in the config.py.
+                "permitted_permissions": ["push", "pull"],  # To grant admin, add this to the config for
+                "enabled": True  # this command in the config.py.
             },
             "!SetDescription": {
                 "command": "!SetDescription",
@@ -69,11 +68,11 @@ class GitHubPlugin(BotCommander):
                 "func": self.set_default_branch_command,
                 "user_data_required": True,
                 "help": "Sets the default branch for a repo.",
-                "enabled": True     # It is HIGHLY recommended you have auth enabled for this!!
+                "enabled": True  # It is HIGHLY recommended you have auth enabled for this!!
             },
             "!ListPRs": {
                 "command": "!ListPRs",
-                "func": self.list_pull_requests,
+                "func": self.list_pull_requests_command,
                 "user_data_required": True,
                 "help": "List the Pull Requests for a repo.",
                 "permitted_states": ["open", "closed", "all"],
@@ -84,7 +83,7 @@ class GitHubPlugin(BotCommander):
                 "func": self.delete_repo_command,
                 "user_data_required": True,
                 "help": "Delete a GitHub repository.",
-                "enabled": True     # It is HIGHLY recommended you have auth enabled for this!!
+                "enabled": True  # It is HIGHLY recommended you have auth enabled for this!!
             },
             "!AddUserToTeam": {
                 "command": "!AddUserToTeam",
@@ -167,231 +166,135 @@ class GitHubPlugin(BotCommander):
 
         send_info(data["channel"], "```{}```".format(tabulate(rows, headers=headers)), markdown=True)
 
-    def set_description_command(self, data, user_data):
+    @hubcommander_command(
+        name="!SetDescription",
+        usage="!SetDescription <OrgWithRepo> <Repo> <\"The description in quotes\">",
+        description="This will set the repository's description.",
+        required=[
+            dict(name="org", properties=dict(type=str, help="The organization that contains the repo."),
+                 validation_func=lookup_real_org, validation_func_kwargs={}),
+            dict(name="repo", properties=dict(type=str, help="The repository to set the description on."),
+                 validation_func=extract_repo_name, validation_func_kwargs={}),
+            dict(name="description", properties=dict(type=str, help="The description to set in quotes. (Empty quotes "
+                                                                    "clears)"),
+                 lowercase=False),
+        ],
+        optional=[]
+    )
+    @auth()
+    @repo_must_exist()
+    def set_description_command(self, data, user_data, org, repo, description):
         """
         Changes a repository description.
 
         Command is as follows: !setdescription <organization> <repo> <description>
         :param data:
+        :param user_data:
+        :param org:
+        :param repo:
+        :param description:
         :return:
         """
-        try:
-            parser = argparse.ArgumentParser()
-            parser.add_argument('org', type=str)
-            parser.add_argument('repo', type=str)
-            parser.add_argument('description', type=str)
-
-            args, unknown = parser.parse_known_args(args=preformat_args_with_spaces(data["text"], 1))
-            if len(unknown) > 0:
-                raise SystemExit()
-
-            args = vars(args)
-
-            # Check that we can use this org:
-            real_org = self.org_lookup[args["org"]][0]
-            reponame = extract_repo_name(args["repo"])
-            description = args["description"].replace("<", "").replace(">", "")
-
-        except KeyError as _:
-            send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
-                       .format(user_data["name"]), markdown=True)
-            return
-
-        except SystemExit as _:
-            send_info(data["channel"], "@{}: `!SetDescription` usage is:\n```!SetDescription <OrgThatHasRepo> "
-                                       "<Repo> <\"The Description in quotes\">```\n"
-                                       "No special characters or spaces in the variables. \n"
-                                       "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
-                                       "This will first check for the presence of the repo in the org before creating it."
-                      .format(user_data["name"]), markdown=True)
-            return
-
-        # Auth?
-        if self.commands["!SetDescription"].get("auth"):
-            if not self.commands["!SetDescription"]["auth"]["plugin"].authenticate(
-                    data, user_data, **self.commands["!SetDescription"]["auth"]["kwargs"]):
-                return
-
         # Output that we are doing work:
         send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
 
-        # Check that the repo exists:
-        if not (self.check_if_repo_exists(data, user_data, reponame, real_org)):
+        # Modify the description:
+        if not (self.make_repo_edit(data, user_data, repo, org, description=description)):
             return
 
-        # Great, modify the description:
-        if not (self.make_repo_edit(data, user_data, reponame, real_org, description=description)):
-            return
-
-        # Done:
         if description == "":
             send_success(data["channel"],
                          "@{}: The {}/{} repository's description field has been cleared."
-                         .format(user_data["name"], real_org, reponame), markdown=True)
+                         .format(user_data["name"], org, repo), markdown=True)
         else:
             send_success(data["channel"],
                          "@{}: The {}/{} repository's description has been modified to:\n"
-                         "`{}`.".format(user_data["name"], real_org, reponame, description), markdown=True)
+                         "`{}`.".format(user_data["name"], org, repo, description), markdown=True)
 
-    def set_repo_homepage_command(self, data, user_data):
+    @hubcommander_command(
+        name="!SetHomepage",
+        usage="!SetHomepage <OrgWithRepo> <Repo> <\"http://theHomePageUrlInQuotes\" - OR - \"\" to remove>",
+        description="This will set the repository's homepage.",
+        required=[
+            dict(name="org", properties=dict(type=str, help="The organization that contains the repo."),
+                 validation_func=lookup_real_org, validation_func_kwargs={}),
+            dict(name="repo", properties=dict(type=str, help="The repository to set the homepage on."),
+                 validation_func=extract_repo_name, validation_func_kwargs={}),
+            dict(name="homepage", properties=dict(type=str, help="The homepage to set in quotes. (Empty quotes "
+                                                                 "clears)"),
+                 validation_func=validate_homepage, validation_func_kwargs={})
+        ],
+        optional=[]
+    )
+    @auth()
+    @repo_must_exist()
+    def set_repo_homepage_command(self, data, user_data, org, repo, homepage):
         """
         Changes a repository's homepage.
 
         Command is as follows: !sethomepage <organization> <repo> <homepage>
         :param data:
+        :param user_data:
+        :param org:
+        :param repo:
+        :param homepage:
         :return:
         """
-        try:
-            parser = argparse.ArgumentParser()
-            parser.add_argument('org', type=str)
-            parser.add_argument('repo', type=str)
-            parser.add_argument('homepage', type=str)
-
-            args, unknown = parser.parse_known_args(args=preformat_args_with_spaces(data["text"], 1))
-            if len(unknown) > 0:
-                raise SystemExit()
-
-            args = vars(args)
-
-            # Check that we can use this org:
-            real_org = self.org_lookup[args["org"]][0]
-            reponame = extract_repo_name(args["repo"])
-
-            # Remove the "<>" from the homepage url (Thanks Slack!)
-            homepage = args["homepage"].replace("<", "").replace(">", "")
-
-            if homepage != "":
-                if not validators.url(homepage):
-                    raise ValueError()
-
-        except KeyError as _:
-            send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
-                       .format(user_data["name"]), markdown=True)
-            return
-
-        except ValueError as _:
-            send_error(data["channel"], '@{}: Invalid homepage url was sent in. It must be a well formed URL.'
-                       .format(user_data["name"]), markdown=True)
-            return
-
-        except SystemExit as _:
-            send_info(data["channel"], "@{}: `!SetHomepage` usage is:\n```!SetHomepage <OrgThatHasRepo> "
-                                       "<Repo> <\"http://theHomePageUrlInQuotes\" - OR - \"\" to remove>```\n"
-                                       "No special characters or spaces in the variables. \n"
-                                       "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
-                                       "This will first check for the presence of the repo in the org before creating it."
-                      .format(user_data["name"]), markdown=True)
-            return
-
-        # Auth?
-        if self.commands["!SetHomepage"].get("auth"):
-            if not self.commands["!SetHomepage"]["auth"]["plugin"].authenticate(
-                    data, user_data, **self.commands["!SetHomepage"]["auth"]["kwargs"]):
-                return
-
         # Output that we are doing work:
         send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
 
-        # Check that the repo exists:
-        if not (self.check_if_repo_exists(data, user_data, reponame, real_org)):
-            return
-
-        # Great, modify the homepage:
-        if not (self.make_repo_edit(data, user_data, reponame, real_org, homepage=homepage)):
+        # Modify the homepage:
+        if not (self.make_repo_edit(data, user_data, repo, org, homepage=homepage)):
             return
 
         # Done:
         if homepage == "":
             send_success(data["channel"],
                          "@{}: The {}/{} repository's homepage field has been cleared."
-                         .format(user_data["name"], real_org, reponame, homepage), markdown=True)
+                         .format(user_data["name"], org, repo, homepage), markdown=True)
         else:
             send_success(data["channel"],
                          "@{}: The {}/{} repository's homepage has been modified to:\n"
-                         "`{}`.".format(user_data["name"], real_org, reponame, homepage), markdown=True)
+                         "`{}`.".format(user_data["name"], org, repo, homepage), markdown=True)
 
-    def add_outside_collab_command(self, data, user_data):
+    @hubcommander_command(
+        name="!AddCollab",
+        usage="!AddCollab <OutsideCollabId> <OrgWithRepo> <Repo> <Permission>",
+        description="This will add an outside collaborator to a repository with the given permission.",
+        required=[
+            dict(name="collab", properties=dict(type=str, help="The outside collaborator's GitHub ID.")),
+            dict(name="org", properties=dict(type=str, help="The organization that contains the repo."),
+                 validation_func=lookup_real_org, validation_func_kwargs={}),
+            dict(name="repo", properties=dict(type=str, help="The repository to add the outside collaborator to."),
+                 validation_func=extract_repo_name, validation_func_kwargs={}),
+            dict(name="permission", properties=dict(type=str, help="The permission to grant, must be one "
+                                                                   "of: `{values}`"),
+                 choices="permitted_permissions"),
+        ],
+        optional=[]
+    )
+    @auth()
+    @repo_must_exist()
+    @github_user_exists("collab")
+    def add_outside_collab_command(self, data, user_data, collab, org, repo, permission):
         """
         Adds an outside collaborator a repository with a specified permission.
 
-        Command is as follows: !addcollab <organization> <repo> <permission>
+        Command is as follows: !addcollab <outside_collab_id> <organization> <repo> <permission>
+        :param permission:
+        :param repo:
+        :param org:
+        :param collab:
+        :param user_data:
         :param data:
         :return:
         """
-        try:
-            parser = argparse.ArgumentParser()
-            parser.add_argument('outside_collab_id', type=str)
-            parser.add_argument('org', type=str)
-            parser.add_argument('repo', type=str)
-            parser.add_argument('permission', type=str)
-
-            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
-            if len(unknown) > 0:
-                raise SystemExit()
-
-            args = vars(args)
-
-            outside_collab_id = args["outside_collab_id"]
-
-            real_org = self.org_lookup[args["org"]][0]
-            reponame = extract_repo_name(args["repo"])
-            repo_access = args["permission"]
-
-            # Check that the permissions and the org are correct:
-            if repo_access not in self.commands["!AddCollab"]["permitted_permissions"]:
-                raise KeyError("Permissions")
-
-        except KeyError as ke:
-            if "Permissions" in str(ke):
-                p_str = " or ".join(["`{perm}`".format(perm=perm)
-                                     for perm in self.commands["!AddCollab"]["permitted_permissions"]])
-                send_error(data["channel"], '@{}: Invalid permission sent in.  Permissions must be {perms}.'
-                           .format(user_data["name"], perms=p_str), markdown=True)
-            else:
-                send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
-                           .format(user_data["name"]), markdown=True)
-            return
-
-        except SystemExit as _:
-            send_info(data["channel"], "@{}: `!AddCollab` usage is:\n```!AddCollab <OutsideCollaboratorGitHubId> "
-                                       "<OrgAliasThatContainsTheRepo> <RepoToAddAccessTo> "
-                                       "<PermissionEitherPushOrPull>```"
-                                       "\nNo special characters or spaces in the variables. "
-                                       "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
-                      .format(user_data["name"]), markdown=True)
-            return
-
-        # Auth?
-        if self.commands["!AddCollab"].get("auth"):
-            if not self.commands["!AddCollab"]["auth"]["plugin"].authenticate(
-                    data, user_data, **self.commands["!AddCollab"]["auth"]["kwargs"]):
-                return
-
         # Output that we are doing work:
         send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
 
-        # Check that the repo exists:
-        if not (self.check_if_repo_exists(data, user_data, reponame, real_org)):
-            return
-
-        # Check that the GitHub ID is actually real:
+        # Grant access:
         try:
-            found_user = self.get_github_user(outside_collab_id)
-
-            if not found_user:
-                send_error(data["channel"], "@{}: The GitHub user: {} does not exist.".format(user_data["name"],
-                                                                                              outside_collab_id))
-                return
-
-        except Exception as e:
-            send_error(data["channel"],
-                       "@{}: A problem was encountered communicating with GitHub to verify the user's GitHub "
-                       "id. Here are the details:\n{}".format(user_data["name"], str(e)))
-            return
-
-        # So: GitHub ID is real - and the repo exists -- grant access:
-        try:
-            self.add_outside_collab_to_repo(outside_collab_id, reponame, real_org, repo_access)
+            self.add_outside_collab_to_repo(collab, repo, org, permission)
 
         except ValueError as ve:
             send_error(data["channel"],
@@ -408,95 +311,52 @@ class GitHubPlugin(BotCommander):
         # Done:
         send_success(data["channel"],
                      "@{}: The GitHub user: `{}` has been added as an outside collaborator with `{}` "
-                     "permissions to {}/{}.".format(user_data["name"], outside_collab_id, repo_access,
-                                                    real_org, reponame),
+                     "permissions to {}/{}.".format(user_data["name"], collab, permission,
+                                                    org, repo),
                      markdown=True)
 
-    def add_user_to_team_command(self, data, user_data):
+    @hubcommander_command(
+        name="!AddUserToTeam",
+        usage="!AddUserToTeam <UserGitHubId> <Org> <Team> <Role>",
+        description="This will add a GitHub user to a team with a specified role.",
+        required=[
+            dict(name="user_id", properties=dict(type=str, help="The user's GitHub ID.")),
+            dict(name="org", properties=dict(type=str, help="The organization that contains the team."),
+                 validation_func=lookup_real_org, validation_func_kwargs={}),
+            dict(name="team", properties=dict(type=str, help="The team to add the user to.")),
+            dict(name="role", properties=dict(type=str, help="The role to grant the user. Must be one of: `{values}`"),
+                 choices="permitted_roles"),
+        ],
+        optional=[]
+    )
+    @auth()
+    @github_user_exists("user_id")
+    def add_user_to_team_command(self, data, user_data, user_id, org, team, role):
         """
         Adds a GitHub user to a team with a specified role.
 
         Command is as follows: !addusertoteam <user_id> <organization> <team> <role>
+        :param role:
+        :param team:
+        :param org:
+        :param user_id:
+        :param user_data:
         :param data:
         :return:
         """
-        try:
-            parser = argparse.ArgumentParser()
-            parser.add_argument('user_id', type=str)
-            parser.add_argument('org', type=str)
-            parser.add_argument('team', type=str)
-            parser.add_argument('role', type=str)
-
-            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
-            if len(unknown) > 0:
-                raise SystemExit()
-
-            args = vars(args)
-
-            user_id = args["user_id"]
-
-            real_org = self.org_lookup[args["org"]][0]
-            team_name = args["team"]
-            team_access = args["role"]
-
-            # Check that the permissions and the org are correct:
-            if team_access not in self.commands["!AddUserToTeam"]["permitted_roles"]:
-                raise KeyError("Roles")
-
-        except KeyError as ke:
-            if "Roles" in str(ke):
-                p_str = " or ".join(["`{perm}`".format(perm=perm)
-                                     for perm in self.commands["!AddUserToTeam"]["permitted_roles"]])
-                send_error(data["channel"], '@{}: Invalid roles sent in.  Roles must be {perms}.'
-                           .format(user_data["name"], perms=p_str), markdown=True)
-            else:
-                send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
-                           .format(user_data["name"]), markdown=True)
-            return
-
-        except SystemExit as _:
-            send_info(data["channel"], "@{}: `!AddUserToTeam` usage is:\n```!AddUserToTeam <GitHubUserID> "
-                                       "<OrgAlias> <TeamToAddAccessTo> "
-                                       "<RoleEitherMemberOrMantainer>```"
-                                       "\nNo special characters or spaces in the variables. "
-                                       "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
-                      .format(user_data["name"]), markdown=True)
-            return
-
-        # Auth?
-        if self.commands["!AddUserToTeam"].get("auth"):
-            if not self.commands["!AddUserToTeam"]["auth"]["plugin"].authenticate(
-                    data, user_data, **self.commands["!AddUserToTeam"]["auth"]["kwargs"]):
-                return
-
         # Output that we are doing work:
         send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
 
         # Check if team exists, if it does return the id
-        team_id = self.find_team_id_by_name(real_org, team_name)
+        team_id = self.find_team_id_by_name(org, team)
 
-        if not (team_id):
+        if not team_id:
             send_error(data["channel"], "The GitHub team does not exist.")
             return
 
-        # Check that the GitHub ID is actually real:
+        # Do it:
         try:
-            found_user = self.get_github_user(user_id)
-
-            if not found_user:
-                send_error(data["channel"], "@{}: The GitHub user: {} does not exist.".format(user_data["name"],
-                                                                                              user_id))
-                return
-
-        except Exception as e:
-            send_error(data["channel"],
-                       "@{}: A problem was encountered communicating with GitHub to verify the user's GitHub "
-                       "id. Here are the details:\n{}".format(user_data["name"], str(e)))
-            return
-
-        # So: GitHub ID is real - and the team exists -- grant access:
-        try:
-            self.invite_user_to_gh_org_team(user_id, team_id, team_access)
+            self.invite_user_to_gh_org_team(user_id, team_id, role)
 
         except ValueError as ve:
             send_error(data["channel"],
@@ -513,63 +373,46 @@ class GitHubPlugin(BotCommander):
         # Done:
         send_success(data["channel"],
                      "@{}: The GitHub user: `{}` has been added as a team member with `{}` "
-                     "permissions to {}/{}.".format(user_data["name"], user_id, team_access,
-                                                    real_org, team_name),
+                     "permissions to {}/{}.".format(user_data["name"], user_id, role,
+                                                    org, team),
                      markdown=True)
 
-    def create_repo_command(self, data, user_data):
+    @hubcommander_command(
+        name="!CreateRepo",
+        usage="!CreateRepo <OrgToCreateRepoIn> <NewRepoName>",
+        description="This will create a new repository on GitHub.",
+        required=[
+            dict(name="org", properties=dict(type=str, help="The organization to create the repo in."),
+                 validation_func=lookup_real_org, validation_func_kwargs={}),
+            dict(name="repo", properties=dict(type=str, help="The name of the new repo to create."),
+                 lowercase=False, validation_func=extract_repo_name, validation_func_kwargs={}),
+        ],
+        optional=[
+            # TODO: Need to add support for optional teams to add. See https://github.com/Netflix/hubcommander/issues/28
+        ]
+    )
+    @auth()
+    def create_repo_command(self, data, user_data, org, repo):
         """
         Creates a new repository (default is private unless the org is public only).
 
-        Command is as follows: !createrepo <newrepo> <organization>
+        Command is as follows: !createrepo <organization> <new_repo>
+        :param repo:
+        :param org:
+        :param user_data:
         :param data:
         :return:
         """
-        try:
-            parser = argparse.ArgumentParser()
-            parser.add_argument('new_repo', type=str)
-            parser.add_argument('org', type=str)
-
-            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
-            if len(unknown) > 0:
-                raise SystemExit()
-
-            args = vars(args)
-
-            repo_to_add = args["new_repo"]
-
-            # Check that we can use this org:
-            real_org = self.org_lookup[args["org"]][0]
-
-        except KeyError as _:
-            send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
-                       .format(user_data["name"]), markdown=True)
-            return
-
-        except SystemExit as _:
-            send_info(data["channel"], "@{}: `!CreateRepo` usage is:\n```!CreateRepo <NewRepoName> "
-                                       "<GitHubOrgAliasToPutTheRepoInToHere>```\nNo special characters or spaces in the "
-                                       "variables.  Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
-                                       "This will first check for the presence of the repo in the org before creating it."
-                      .format(user_data["name"]), markdown=True)
-            return
-
-        # Auth?
-        if self.commands["!CreateRepo"].get("auth"):
-            if not self.commands["!CreateRepo"]["auth"]["plugin"].authenticate(
-                    data, user_data, **self.commands["!CreateRepo"]["auth"]["kwargs"]):
-                return
-
         # Output that we are doing work:
         send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
 
         # Check if the repo already exists:
         try:
-            result = self.check_gh_for_existing_repo(repo_to_add, real_org)
+            result = self.check_gh_for_existing_repo(repo, org)
 
             if result:
                 send_error(data["channel"],
-                           "@{}: This repository already exists in {}!".format(user_data["name"], real_org))
+                           "@{}: This repository already exists in {}!".format(user_data["name"], org))
                 return
 
         except Exception as e:
@@ -580,8 +423,8 @@ class GitHubPlugin(BotCommander):
 
         # Great!! Create the repository:
         try:
-            visibility = True if not ORGS[real_org]["public_only"] else False
-            self.create_new_repo(repo_to_add, real_org, visibility)
+            visibility = True if not ORGS[org]["public_only"] else False
+            self.create_new_repo(repo, org, visibility)
         except Exception as e:
             send_error(data["channel"],
                        "@{}: I encountered a problem:\n\n{}".format(user_data["name"], e))
@@ -592,8 +435,8 @@ class GitHubPlugin(BotCommander):
 
         # Grant the proper teams access to the repository:
         try:
-            for perm_dict in ORGS[real_org]["new_repo_teams"]:
-                self.set_repo_permissions(repo_to_add, real_org, perm_dict["id"], perm_dict["perm"])
+            for perm_dict in ORGS[org]["new_repo_teams"]:
+                self.set_repo_permissions(repo, org, perm_dict["id"], perm_dict["perm"])
 
         except Exception as e:
             send_error(data["channel"],
@@ -602,9 +445,9 @@ class GitHubPlugin(BotCommander):
             return
 
         # All done!
-        message = "@{}: The new repo: {} has been created in {}.\n".format(user_data["name"], repo_to_add, real_org)
-        message += "You can access the repo at: https://github.com/{org}/{repo}\n".format(org=real_org,
-                                                                                          repo=repo_to_add)
+        message = "@{}: The new repo: {} has been created in {}.\n".format(user_data["name"], repo, org)
+        message += "You can access the repo at: https://github.com/{org}/{repo}\n".format(org=org,
+                                                                                          repo=repo)
 
         visibility = "PRIVATE" if visibility else "PUBLIC"
 
@@ -613,227 +456,129 @@ class GitHubPlugin(BotCommander):
 
         send_success(data["channel"], message)
 
-    def delete_repo_command(self, data, user_data):
+    @hubcommander_command(
+        name="!DeleteRepo",
+        usage="!DeleteRepo <OrgThatHasRepo> <RepoToDelete>",
+        description="This will delete a repo from a GitHub organization.",
+        required=[
+            dict(name="org", properties=dict(type=str, help="The organization that contains the repo."),
+                 validation_func=lookup_real_org, validation_func_kwargs={}),
+            dict(name="repo", properties=dict(type=str, help="The name of the new repo to delete."),
+                 validation_func=extract_repo_name, validation_func_kwargs={}),
+        ],
+        optional=[]
+    )
+    @auth()
+    @repo_must_exist()
+    def delete_repo_command(self, data, user_data, org, repo):
         """
         Deletes a repository.
 
-        Command is as follows: !deleterepo <repo> <organization>
+        Command is as follows: !deleterepo <organization> <repo>
+        :param repo:
+        :param org:
+        :param user_data:
         :param data:
         :return:
         """
-        try:
-            parser = argparse.ArgumentParser()
-            parser.add_argument('repo', type=str)
-            parser.add_argument('org', type=str)
-
-            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
-            if len(unknown) > 0:
-                raise SystemExit()
-
-            args = vars(args)
-
-            repo_to_remove = args["repo"]
-
-            # Check that we can use this org:
-            real_org = self.org_lookup[args["org"]][0]
-
-        except KeyError as _:
-            send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
-                       .format(user_data["name"]), markdown=True)
-            return
-
-        except SystemExit as _:
-            send_info(data["channel"], "@{}: `!DeleteRepo` usage is:\n```!DeleteRepo <RepoName> "
-                                       "<GitHubOrgAliasToPutTheRepoInToHere>```\nNo special characters or spaces in the "
-                                       "variables.  Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
-                                       "This will first check for the presence of the repo in the org before creating it."
-                      .format(user_data["name"]), markdown=True)
-            return
-
-        # Auth?
-        if self.commands["!DeleteRepo"].get("auth"):
-            if not self.commands["!DeleteRepo"]["auth"]["plugin"].authenticate(
-                    data, user_data, **self.commands["!DeleteRepo"]["auth"]["kwargs"]):
-                return
-
         # Output that we are doing work:
         send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
 
-        # Check if the repo already exists:
+        # Delete the repository:
         try:
-            result = self.check_gh_for_existing_repo(repo_to_remove, real_org)
-
-            if not result:
-                send_error(data["channel"],
-                           "@{}: This repository does not exist in {}!".format(user_data["name"], real_org))
-                return
-
-        except Exception as e:
-            send_error(data["channel"],
-                       "@{}: I encountered a problem:\n\n{}".format(user_data["name"], e))
-
-            return
-
-        # Great! Delete the repository:
-        try:
-            self.delete_repo(repo_to_remove, real_org)
+            self.delete_repo(repo, org)
         except Exception as e:
             send_error(data["channel"],
                        "@{}: I encountered a problem:\n\n{}".format(user_data["name"], e))
             return
 
         # All done!
-        message = "@{}: The repo: {} has been deleted from {}.\n".format(user_data["name"],
-                                                                         repo_to_remove, real_org)
-
+        message = "@{}: The repo: {} has been deleted from {}.\n".format(user_data["name"], repo, org)
         send_success(data["channel"], message)
 
-    def set_default_branch_command(self, data, user_data):
+    @hubcommander_command(
+        name="!SetDefaultBranch",
+        usage="!SetDefaultBranch <OrgThatHasRepo> <Repo> <BranchName>",
+        description="This will set the default branch on a GitHub repo.\n\n"
+                    "Please Note: GitHub prefers lowercase branch names. You may encounter issues "
+                    "with uppercase letters.",
+        required=[
+            dict(name="org", properties=dict(type=str, help="The organization that contains the repo."),
+                 validation_func=lookup_real_org, validation_func_kwargs={}),
+            dict(name="repo", properties=dict(type=str, help="The name of the repo to set the default on."),
+                 validation_func=extract_repo_name, validation_func_kwargs={}),
+            dict(name="branch", properties=dict(type=str, help="The name of the branch to set as default. "
+                                                               "(Case-Sensitive)"), lowercase=False),
+        ],
+        optional=[]
+    )
+    @auth()
+    @repo_must_exist()
+    @branch_must_exist()
+    def set_default_branch_command(self, data, user_data, org, repo, branch):
         """
         Sets the default branch of a repo.
 
         Command is as follows: !setdefaultbranch <organization> <repo> <branch>
+        :param branch:
+        :param repo:
+        :param org:
+        :param user_data:
         :param data:
         :return:
         """
-        try:
-            parser = argparse.ArgumentParser()
-            parser.add_argument('org', type=str)
-            parser.add_argument('repo', type=str)
-            parser.add_argument('branch', type=str)
-
-            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
-            if len(unknown) > 0:
-                raise SystemExit()
-
-            args = vars(args)
-
-            # Check that we can use this org:
-            real_org = self.org_lookup[args["org"]][0]
-            reponame = extract_repo_name(args["repo"])
-            branch = args["branch"]
-
-        except KeyError as _:
-            send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
-                       .format(user_data["name"]), markdown=True)
-            return
-
-        except SystemExit as _:
-            send_info(data["channel"], "@{}: `!SetDefaultBranch` usage is:\n```!SetDefaultBranch <OrgThatHasRepo> "
-                                       "<Repo> <NameOfBranch>```\n"
-                                       "No special characters or spaces in the variables. \n"
-                                       "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
-                                       "This will first check for the presence of the repo in the org before creating it."
-                      .format(user_data["name"]), markdown=True)
-            return
-
-        # Auth?
-        if self.commands["!SetDefaultBranch"].get("auth"):
-            if not self.commands["!SetDefaultBranch"]["auth"]["plugin"].authenticate(
-                    data, user_data, **self.commands["!SetDefaultBranch"]["auth"]["kwargs"]):
-                return
-
         # Output that we are doing work:
         send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
 
-        # Check that the repo exists:
-        repo_data = self.check_gh_for_existing_repo(reponame, real_org)
-        if not (repo_data):
-            send_error(data["channel"],
-                       "@{}: This repository does not exist in {}.".format(user_data["name"], real_org))
-            return False
-
-        # Check if the branch exists on that repo....
-        if not (self.check_for_repo_branch(reponame, real_org, branch)):
-            send_error(data["channel"],
-                       "@{}: This repository does not have the branch: `{}`.".format(user_data["name"], branch),
-                       markdown=True)
-            return False
-
-        # Great, set the default branch:
-        if not (self.make_repo_edit(data, user_data, reponame, real_org, default_branch=branch)):
+        # Set the default branch:
+        if not (self.make_repo_edit(data, user_data, repo, org, default_branch=branch)):
             return
 
         # Done:
         send_success(data["channel"],
                      "@{}: The {}/{} repository's default branch has been set to: `{}`."
-                     .format(user_data["name"], real_org, reponame, branch), markdown=True)
+                     .format(user_data["name"], org, repo, branch), markdown=True)
 
-    def set_branch_protection_command(self, data, user_data):
+    @hubcommander_command(
+        name="!SetBranchProtection",
+        usage="!SetBranchProtection <OrgThatHasRepo> <Repo> <BranchName> <On|Off>",
+        description="This will enable basic branch protection to a GitHub repo.\n\n"
+                    "Please Note: GitHub prefers lowercase branch names. You may encounter issues "
+                    "with uppercase letters.",
+        required=[
+            dict(name="org", properties=dict(type=str, help="The organization that contains the repo."),
+                 validation_func=lookup_real_org, validation_func_kwargs={}),
+            dict(name="repo", properties=dict(type=str, help="The name of the repo to set the default on."),
+                 validation_func=extract_repo_name, validation_func_kwargs={}),
+            dict(name="branch", properties=dict(type=str, help="The name of the branch to set as default. "
+                                                               "(Case-Sensitive)"), lowercase=False),
+            dict(name="toggle", properties=dict(type=str, help="Toggle to enable or disable branch protection"),
+                 validation_func=parse_toggles, validation_func_kwargs={})
+        ],
+        optional=[]
+    )
+    @auth()
+    @repo_must_exist()
+    @branch_must_exist()
+    def set_branch_protection_command(self, data, user_data, org, repo, branch, toggle):
         """
         Sets branch protection on a repo (CURRENTLY VERY LIMITED).
 
         Command is as follows: !setbranchprotection <organization> <repo> <branch> <on/off>
+        :param toggle:
+        :param branch:
+        :param repo:
+        :param org:
+        :param user_data:
         :param data:
         :return:
         """
-        try:
-            parser = argparse.ArgumentParser()
-            parser.add_argument('org', type=str)
-            parser.add_argument('repo', type=str)
-            parser.add_argument('branch', type=str)
-            parser.add_argument('toggle', type=str)
-
-            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
-            if len(unknown) > 0:
-                raise SystemExit()
-
-            args = vars(args)
-
-            # Check that we can use this org:
-            real_org = self.org_lookup[args["org"]][0]
-            reponame = extract_repo_name(args["repo"])
-            branch = args["branch"]
-            toggle = parse_toggles(args["toggle"])
-
-        except KeyError as _:
-            send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
-                       .format(user_data["name"]), markdown=True)
-            return
-
-        except ValueError as _:
-            valid_toggles = TOGGLE_ON_VALUES + TOGGLE_OFF_VALUES
-
-            send_error(data["channel"], '@{}: Invalid toggle sent in. Must be one of: {}.'
-                       .format(user_data["name"], ", ".join(valid_toggles)), markdown=True)
-            return
-
-        except SystemExit as _:
-            send_info(data["channel"], "@{}: `!SetBranchProtection` usage is:\n```!SetBranchProtection "
-                                       "<OrgThatHasRepo> <Repo> <NameOfBranch> <On|Off>```\n"
-                                       "No special characters or spaces in the variables. \n"
-                                       "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
-                                       "This will first check for the presence of the repo in the org before "
-                                       "creating it."
-                      .format(user_data["name"]), markdown=True)
-            return
-
-        # Auth?
-        if self.commands["!SetBranchProtection"].get("auth"):
-            if not self.commands["!SetBranchProtection"]["auth"]["plugin"].authenticate(
-                    data, user_data, **self.commands["!SetBranchProtection"]["auth"]["kwargs"]):
-                return
-
         # Output that we are doing work:
         send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
 
-        # Check that the repo exists:
-        repo_data = self.check_gh_for_existing_repo(reponame, real_org)
-        if not (repo_data):
-            send_error(data["channel"],
-                       "@{}: This repository does not exist in {}.".format(user_data["name"], real_org))
-            return False
-
-        # Check if the branch exists on that repo....
-        if not (self.check_for_repo_branch(reponame, real_org, branch)):
-            send_error(data["channel"],
-                       "@{}: This repository does not have the branch: `{}`.".format(user_data["name"], branch),
-                       markdown=True)
-            return False
-
-        # Great, change the protection status:
+        # Change the protection status:
         try:
-            self.set_branch_protection(reponame, real_org, branch, toggle)
+            self.set_branch_protection(repo, org, branch, toggle)
 
         except requests.exceptions.RequestException as re:
             send_error(data["channel"],
@@ -845,7 +590,267 @@ class GitHubPlugin(BotCommander):
         status = "ENABLED" if toggle else "DISABLED"
         send_success(data["channel"],
                      "@{}: The {}/{} repository's {} branch protection status is now: {}."
-                     .format(user_data["name"], real_org, reponame, branch, status), markdown=True)
+                     .format(user_data["name"], org, repo, branch, status), markdown=True)
+
+    @hubcommander_command(
+        name="!ListPRs",
+        usage="!ListPRs <OrgThatHasRepo> <Repo> <State>",
+        description="This will list pull requests for a repo.",
+        required=[
+            dict(name="org", properties=dict(type=str, help="The organization that contains the repo."),
+                 validation_func=lookup_real_org, validation_func_kwargs={}),
+            dict(name="repo", properties=dict(type=str, help="The name of the repo to list PRs on."),
+                 validation_func=extract_repo_name, validation_func_kwargs={}),
+            dict(name="state", properties=dict(type=str, help="The state of the PR. Must be one of: `{values}`"),
+                 choices="permitted_states")
+        ],
+        optional=[]
+    )
+    @auth()
+    @repo_must_exist()
+    def list_pull_requests_command(self, data, user_data, org, repo, state):
+        """
+        List the Pull Requests for a repo.
+
+        Command is as follows: !listprs <organization> <repo> <state>
+        :param state:
+        :param repo:
+        :param org:
+        :param user_data:
+        :param data:
+        :return:
+        """
+        # Output that we are doing work:
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+
+        # Grab all PRs [All states]
+        pull_requests = self.get_repo_prs(data, user_data, repo, org, state)
+        if not pull_requests:
+            if isinstance(pull_requests, list):
+                send_info(data["channel"],
+                          "@{}: No matching pull requests were found in *{}*.".format(user_data["name"], repo))
+            return
+
+        headers = ["#PR", "Title", "Opened by", "Assignee", "State"]
+
+        rows = []
+        for pr in pull_requests:
+            assignee = pr['assignee']['login'] if pr['assignee'] is not None else '-'
+            rows.append([pr['number'], pr['title'], pr['user']['login'], assignee, pr['state'].title()])
+        # Done:
+        send_raw(data["channel"], text="Repository: *{}* \n\n```{}```".format(repo, tabulate(rows, headers=headers,
+                                                                                             tablefmt='orgtbl')))
+
+    @hubcommander_command(
+        name="!ListKeys",
+        usage="!ListKeys <OrgThatHasRepo> <Repo>",
+        description="This will list deploy keys for a repo.",
+        required=[
+            dict(name="org", properties=dict(type=str, help="The organization that contains the repo."),
+                 validation_func=lookup_real_org, validation_func_kwargs={}),
+            dict(name="repo", properties=dict(type=str, help="The name of the repo to list deploy keys on."),
+                 validation_func=extract_repo_name, validation_func_kwargs={})
+        ],
+        optional=[]
+    )
+    @auth()
+    @repo_must_exist()
+    def list_deploy_keys_command(self, data, user_data, org, repo):
+        """
+        List the Deploy Keys for a repo.
+
+        Command is as follows: !ListKeys <organization> <repo>
+        :param repo:
+        :param org:
+        :param user_data:
+        :param data:
+        :return:
+        """
+        # Output that we are doing work:
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+
+        # Grab all Deploy Keys
+        deploy_keys = self.get_repo_deploy_keys(data, user_data, repo, org)
+
+        if not (deploy_keys):
+            if isinstance(deploy_keys, list):
+                send_info(data["channel"],
+                          "@{}: No deploy keys were found in *{}*.".format(user_data["name"], repo))
+            return
+
+        headers = ["ID#", "Title", "Read-only", "Created"]
+
+        rows = []
+        for key in deploy_keys:
+            # Set a default readonly state
+            readonly = 'True'
+            if not key['read_only']:
+                readonly = 'False'
+
+            rows.append([key['id'], key['title'], readonly, key['created_at']])
+
+        # Done:
+        send_raw(data["channel"], text="Deploy Keys: *{}* \n\n```{}```".format(repo, tabulate(rows, headers=headers,
+                                                                                              tablefmt='orgtbl')))
+
+    @hubcommander_command(
+        name="!AddKey",
+        usage="!AddKey <OrgThatHasRepo> <Repo> <KeyTitle> <ReadOnlyToggle on|off> <\"KeyInQuotes\">",
+        description="This will add a deploy key to a repo.",
+        required=[
+            dict(name="org", properties=dict(type=str, help="The organization that contains the repo."),
+                 validation_func=lookup_real_org, validation_func_kwargs={}),
+            dict(name="repo", properties=dict(type=str, help="The name of the repo to add a deploy key to."),
+                 validation_func=extract_repo_name, validation_func_kwargs={}),
+            dict(name="title", properties=dict(type=str, help="The name of the deploy key. (Case-Sensitive)"),
+                 lowercase=False),
+            dict(name="readonly", properties=dict(type=str, help="Toggle to indicate if this key is read-only."),
+                 validation_func=parse_toggles, validation_func_kwargs={}),
+            dict(name="pubkey", properties=dict(type=str, help="The SSH *PUBLIC* key in quotes. (Case-Sensitive)"),
+                 lowercase=False)
+        ],
+        optional=[]
+    )
+    @auth()
+    @repo_must_exist()
+    def add_deploy_key_command(self, data, user_data, org, repo, title, readonly, pubkey):
+        """
+        Add a Deploy Key to a repo.
+
+        Command is as follows: !AddKey <organization> <repo> <title> <readonly> "<pubkey>"
+        :param pubkey:
+        :param title:
+        :param repo:
+        :param org:
+        :param user_data:
+        :param readonly:
+        :param data:
+        :return:
+        """
+        # Output that we are doing work:
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+
+        # Add the Deploy Key
+        result = self.add_repo_deploy_key(data, user_data, repo, org, title, pubkey, readonly)
+
+        # If we have an error due to invalid key, we are returning False from the API response method
+        if not result:
+            send_error(data["channel"], "@{}: The deploy key entered was invalid.".format(user_data["name"], repo))
+            return
+
+        if not result.get('id'):
+            send_error(data["channel"], "@{}: Adding deploy key failed.".format(user_data["name"], repo))
+            return
+
+        # Done:
+        send_raw(data["channel"],
+                 text="Deploy Key *{}* with ID *{}* successfully added to *{}*\n\n".format(result['title'],
+                                                                                           result['id'], repo))
+
+    @hubcommander_command(
+        name="!DeleteKey",
+        usage="!DeleteKey <OrgThatHasRepo> <Repo> <KeyId>",
+        description="This will delete the specified deploy key from a repo.",
+        required=[
+            dict(name="org", properties=dict(type=str, help="The organization that contains the repo."),
+                 validation_func=lookup_real_org, validation_func_kwargs={}),
+            dict(name="repo", properties=dict(type=str, help="The name of the repo to remove the deploy key from."),
+                 validation_func=extract_repo_name, validation_func_kwargs={}),
+            dict(name="id", properties=dict(type=int, help="The ID of the key. Please run !ListKeys to get this."))
+        ],
+        optional=[]
+    )
+    @auth()
+    @repo_must_exist()
+    def delete_deploy_key_command(self, data, user_data, org, repo, id):
+        """
+        Delete a Deploy Key from a repo.
+
+        Command is as follows: !DeleteKey <organization> <repo> <id>
+        :param id:
+        :param repo:
+        :param org:
+        :param user_data:
+        :param data:
+        :return:
+        """
+        # Output that we are doing work:
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+
+        # Grab the Deploy Key (check that it exists)
+        deploy_key = self.get_repo_deploy_key_by_id(data, user_data, repo, org, id)
+        if not deploy_key:
+            if deploy_key is None:
+                send_error(data["channel"],
+                           "@{}: Deploy Key with ID: `{}` is not present for the {}/{} repo.".format(user_data["name"],
+                                                                                                     id, org, repo),
+                           markdown=True)
+            else:
+                send_error(data["channel"], "@{}: Error Retrieving Deploy Key `{}`.".format(user_data["name"], id),
+                           markdown=True)
+
+            return
+
+        # Delete the Deploy Key
+        result = self.delete_repo_deploy_key(data, user_data, repo, org, id)
+
+        if not result:
+            send_info(data["channel"], "@{}: Error deleting deploy key ID *{}*.".format(user_data["name"], id),
+                      markdown=True)
+            return
+
+        # Done:
+        send_raw(data["channel"], text="Deploy Key ID *{}* successfully deleted from *{}*\n\n".format(id, repo))
+
+    @hubcommander_command(
+        name="!GetKey",
+        usage="!GetKey <OrgThatHasRepo> <Repo> <KeyId>",
+        description="This will fetch the details of a specified deploy key from a repo.",
+        required=[
+            dict(name="org", properties=dict(type=str, help="The organization that contains the repo."),
+                 validation_func=lookup_real_org, validation_func_kwargs={}),
+            dict(name="repo", properties=dict(type=str, help="The name of the repo to fetch the deploy key "
+                                                             "details from."),
+                 validation_func=extract_repo_name, validation_func_kwargs={}),
+            dict(name="id", properties=dict(type=int, help="The ID of the key. Please run !ListKeys to get this."))
+        ],
+        optional=[]
+    )
+    @auth()
+    @repo_must_exist()
+    def get_deploy_key_command(self, data, user_data, org, repo, id):
+        """
+        Get a given Deploy Key.
+
+        Command is as follows: !GetKey <organization> <repo> <id>
+        :param id:
+        :param repo:
+        :param org:
+        :param user_data:
+        :param data:
+        :return:
+        """
+        # Output that we are doing work:
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+
+        # Grab the Deploy Key
+        deploy_key = self.get_repo_deploy_key_by_id(data, user_data, repo, org, id)
+
+        if not deploy_key:
+            if deploy_key is None:
+                send_error(data["channel"],
+                           "@{}: Deploy Key with ID: `{}` is not present for the {}/{} repo.".format(user_data["name"],
+                                                                                                     id, org, repo),
+                           markdown=True)
+            else:
+                send_error(data["channel"], "@{}: Error Retrieving Deploy Key `{}`.".format(user_data["name"], id),
+                           markdown=True)
+
+            return
+
+        # Done:
+        send_info(data["channel"],
+                  "@{}: Deploy Key ID `{}`: ```{}```".format(user_data["name"], id, deploy_key['key']), markdown=True)
 
     def check_if_repo_exists(self, data, user_data, reponame, real_org):
         try:
@@ -902,7 +907,6 @@ class GitHubPlugin(BotCommander):
 
     def get_repo_prs(self, data, user_data, reponame, real_org, state, **kwargs):
         try:
-
             return self.get_repo_pull_requests_http(reponame, real_org, state, **kwargs)
 
         except requests.exceptions.RequestException as re:
@@ -919,7 +923,6 @@ class GitHubPlugin(BotCommander):
 
     def get_repo_deploy_keys(self, data, user_data, reponame, real_org, **kwargs):
         try:
-
             return self.get_repo_deploy_keys_http(reponame, real_org, **kwargs)
 
         except requests.exceptions.RequestException as re:
@@ -935,19 +938,19 @@ class GitHubPlugin(BotCommander):
 
     def get_repo_deploy_key_by_id(self, data, user_data, reponame, real_org, deploy_key_id, **kwargs):
         try:
-
             return self.get_repo_deploy_key_by_id_http(reponame, real_org, deploy_key_id, **kwargs)
 
         except requests.exceptions.RequestException as re:
             send_error(data["channel"],
                        "@{}: Problem encountered while getting deploy key from the repository.\n"
                        "The response code from GitHub was: {}".format(user_data["name"], str(re)))
-            return False
 
         except Exception as e:
             send_error(data["channel"],
                        "@{}: Problem encountered while parsing the response.\n"
                        "Here are the details: {}".format(user_data["name"], str(e)))
+
+        return False
 
     def add_repo_deploy_key(self, data, user_data, reponame, real_org, title, deploy_key, readonly, **kwargs):
         try:
@@ -972,7 +975,6 @@ class GitHubPlugin(BotCommander):
             send_error(data["channel"],
                        "@{}: Problem encountered while deleting deploy key to the repository.\n"
                        "The response code from GitHub was: {}".format(user_data["name"], str(re)))
-            return False
 
         except Exception as e:
             send_error(data["channel"],
@@ -1171,7 +1173,8 @@ class GitHubPlugin(BotCommander):
             }
         }
 
-        response = requests.patch('{}{}'.format(GITHUB_URL, api_part), data=json.dumps(data), headers=headers, timeout=10)
+        response = requests.patch('{}{}'.format(GITHUB_URL, api_part), data=json.dumps(data), headers=headers,
+                                  timeout=10)
 
         if response.status_code != 200:
             message = 'An error was encountered communicating with GitHub: Status Code: {}' \
@@ -1223,7 +1226,7 @@ class GitHubPlugin(BotCommander):
             'Accept': GITHUB_VERSION
         }
 
-        # Get all teams inside the organzation:
+        # Get all teams inside the organization:
         api_part = 'orgs/{}/teams'.format(org)
         url = '{}{}'.format(GITHUB_URL, api_part)
 
@@ -1243,91 +1246,6 @@ class GitHubPlugin(BotCommander):
                 url = response.links["next"]["url"]
             else:
                 return False
-
-    def list_pull_requests(self, data, user_data):
-        """
-        List the Pull Requests for a repo.
-
-        Command is as follows: !listprs <organization> <repo> <state>
-        :param data:
-        :return:
-        """
-        try:
-            parser = argparse.ArgumentParser()
-            parser.add_argument('org', type=str)
-            parser.add_argument('repo', type=str)
-            parser.add_argument('state', type=str)
-
-            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
-            if len(unknown) > 0:
-                raise SystemExit()
-
-            args = vars(args)
-
-            # Check that we can use this org:
-            real_org = self.org_lookup[args["org"]][0]
-            reponame = extract_repo_name(args["repo"])
-
-            # Check if the sent state is permitted
-            state = args["state"]
-            if state not in self.commands["!ListPRs"]["permitted_states"]:
-                raise KeyError("PRStates")
-
-        except KeyError as ke:
-            if "PRStates" in str(ke):
-                s_str = " or ".join(["`{perm_state}`".format(perm_state=perm_state)
-                                     for perm_state in self.commands["!ListPRs"]["permitted_states"]])
-                send_error(data["channel"], '@{}: Invalid state sent in.  States must be {perm_states}.'
-                           .format(user_data["name"], perm_states=s_str), markdown=True)
-            else:
-                send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
-                           .format(user_data["name"]), markdown=True)
-            return
-
-        except SystemExit as _:
-            s_str = " or ".join(["`{perm_state}`".format(perm_state=perm_state)
-                                 for perm_state in self.commands["!ListPRs"]["permitted_states"]])
-            send_info(data["channel"], "@{}: `!ListPRs` usage is:\n```!ListPRs <OrgThatHasRepo> "
-                                       "<Repo> <State>```\n"
-                                       "`<State>` must one of: {perm_states}\n"
-                                       "No special characters or spaces in the variables. \n"
-                                       "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
-                      .format(user_data["name"], perm_states=s_str), markdown=True)
-            return
-
-        # Auth?
-        if self.commands["!ListPRs"].get("auth"):
-            if not self.commands["!ListPRs"]["auth"]["plugin"].authenticate(
-                    data, user_data, **self.commands["!ListPRs"]["auth"]["kwargs"]):
-                return
-
-        # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
-
-        # Check that the repo exists:
-        repo_data = self.check_gh_for_existing_repo(reponame, real_org)
-        if not (repo_data):
-            send_error(data["channel"],
-                       "@{}: This repository does not exist in {}.".format(user_data["name"], real_org))
-            return
-
-        # Grab all PRs [All states]
-        pull_requests = self.get_repo_prs(data, user_data, reponame, real_org, state)
-        if not (pull_requests):
-            if isinstance(pull_requests, list):
-                send_info(data["channel"],
-                          "@{}: No matching pull requests were found in *{}*.".format(user_data["name"], reponame))
-            return
-
-        headers = ["#PR", "Title", "Opened by", "Assignee", "State"]
-
-        rows = []
-        for pr in pull_requests:
-            assignee = pr['assignee']['login'] if pr['assignee'] is not None else '-'
-            rows.append([pr['number'],pr['title'], pr['user']['login'], assignee,pr['state'].title()])
-        # Done:
-        send_raw(data["channel"], text="Repository: *{}* \n\n```{}```".format(reponame, tabulate(rows, headers=headers,
-                                                                                                 tablefmt='orgtbl')))
 
     def get_repo_deploy_keys_http(self, repo, org, **kwargs):
         """
@@ -1375,86 +1293,13 @@ class GitHubPlugin(BotCommander):
 
         if response.status_code == 200:
             return response.json()
+        elif response.status_code == 404:
+            return
+
         else:
             message = 'An error was encountered communicating with GitHub: Status Code: {}' \
                 .format(response.status_code)
             raise requests.exceptions.RequestException(message)
-
-    def list_deploy_keys_command(self, data, user_data):
-        """
-        List the Deploy Keys for a repo.
-
-        Command is as follows: !ListKeys <organization> <repo>
-        :param data:
-        :return:
-        """
-        try:
-            parser = argparse.ArgumentParser()
-            parser.add_argument('org', type=str)
-            parser.add_argument('repo', type=str)
-
-            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
-            if len(unknown) > 0:
-                raise SystemExit()
-
-            args = vars(args)
-
-            # Check that we can use this org:
-            real_org = self.org_lookup[args["org"]][0]
-            reponame = extract_repo_name(args["repo"])
-
-        except KeyError as ke:
-            send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
-                       .format(user_data["name"]), markdown=True)
-            return
-
-        except SystemExit as _:
-            send_info(data["channel"], "@{}: `!ListKeys` usage is:\n```!ListKeys <OrgThatHasRepo> "
-                                       "<Repo>```\n"
-                                       "No special characters or spaces in the variables. \n"
-                                       "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
-                      .format(user_data["name"]), markdown=True)
-            return
-
-        # Auth?
-        if self.commands["!ListKeys"].get("auth"):
-            if not self.commands["!ListKeys"]["auth"]["plugin"].authenticate(
-                    data, user_data, **self.commands["!ListKeys"]["auth"]["kwargs"]):
-                return
-
-        # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
-
-        # Check that the repo exists:
-        repo_data = self.check_gh_for_existing_repo(reponame, real_org)
-        if not (repo_data):
-            send_error(data["channel"], "@{}: This repository does not exist in {}.".format(user_data["name"], real_org))
-            return
-
-        # Grab all Deploy Keys
-        deploy_keys = self.get_repo_deploy_keys(data, user_data, reponame, real_org)
-
-        if not (deploy_keys):
-            if isinstance(deploy_keys, list):
-                send_info(data["channel"], "@{}: No deploy keys were found in *{}*.".format(user_data["name"], reponame))
-            return
-
-        headers = ["ID#", "Title", "Read-only", "Created"]
-
-        rows = []
-        for key in deploy_keys:
-            key_id = key['id']
-            key_title = key['title']
-            created = key['created_at']
-            # Set a default readonly state
-            readonly = 'True'
-            if not key['read_only']:
-                readonly = 'False'
-
-            rows.append([key['id'], key['title'], readonly, key['created_at']])
-        # Done:
-        send_raw(data["channel"], text="Deploy Keys: *{}* \n\n```{}```".format(reponame, tabulate(rows, headers=headers,
-                                                                                                  tablefmt='orgtbl')))
 
     def add_repo_deploy_key_http(self, repo, org, title, deploy_key, readonly, **kwargs):
         """
@@ -1498,83 +1343,6 @@ class GitHubPlugin(BotCommander):
                 .format(response.status_code)
             raise requests.exceptions.RequestException(message)
 
-    def add_deploy_key_command(self, data, user_data):
-        """
-        Add a Deploy Keys for a repo.
-
-        Command is as follows: !AddKey <organization> <repo> <title> <readonly> "<key>"
-        :param data:
-        :return:
-        """
-        try:
-            parser = argparse.ArgumentParser()
-            parser.add_argument('org', type=str)
-            parser.add_argument('repo', type=str)
-            parser.add_argument('title', type=str)
-            parser.add_argument('readonly', type=str)
-            parser.add_argument('pubkey', type=str)
-
-            args, unknown = parser.parse_known_args(args=preformat_args_with_spaces(data["text"], 1))
-            if len(unknown) > 0:
-                raise SystemExit()
-
-            args = vars(args)
-
-            # Check that we can use this org:
-            real_org = self.org_lookup[args["org"]][0]
-            reponame = extract_repo_name(args["repo"])
-
-            key_title = args["title"]
-            deploy_key = args["pubkey"]
-
-            # set default deploy key state
-            readonly = True
-            if args["readonly"].lower() != "true":
-                readonly = False
-
-        except KeyError as ke:
-            send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
-                       .format(user_data["name"]), markdown=True)
-            return
-
-        except SystemExit as _:
-            send_info(data["channel"], "@{}: `!AddKey` usage is:\n```!AddKey <OrgThatHasRepo> "
-                                       "<Repo> <KeyTitle> <ReadOnlyBool> \"<Key>\"```\n"
-                                       "No special characters or spaces in the variables. \n"
-                                       "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
-                      .format(user_data["name"]), markdown=True)
-            return
-
-        # Auth?
-        if self.commands["!AddKey"].get("auth"):
-            if not self.commands["!AddKey"]["auth"]["plugin"].authenticate(
-                    data, user_data, **self.commands["!AddKey"]["auth"]["kwargs"]):
-                return
-
-        # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
-
-        # Check that the repo exists:
-        repo_data = self.check_gh_for_existing_repo(reponame, real_org)
-        if not (repo_data):
-            send_error(data["channel"], "@{}: This repository does not exist in {}.".format(user_data["name"], real_org))
-            return
-
-        # Add the Deploy Key
-        result = self.add_repo_deploy_key(data, user_data, reponame, real_org, key_title, deploy_key, readonly)
-
-        # If we have an error due to invalid key, we are returning False from the API response method
-        if not result:
-            send_error(data["channel"], "@{}: The deploy key entered was invalid.".format(user_data["name"], reponame))
-            return
-
-        if not result.get('id'):
-            send_error(data["channel"], "@{}: Adding deploy key failed.".format(user_data["name"], reponame))
-            return
-
-        # Done:
-        send_raw(data["channel"], text="Deploy Key *{}* with ID *{}* successfully added to *{}*\n\n".format(result['title'], result['id'], reponame))
-
     def delete_repo_deploy_key_http(self, repo, org, key_id, **kwargs):
         """
         List deploy keys associated with a repo.
@@ -1600,130 +1368,3 @@ class GitHubPlugin(BotCommander):
             message = 'An error was encountered communicating with GitHub: Status Code: {}' \
                 .format(response.status_code)
             raise requests.exceptions.RequestException(message)
-
-    def delete_deploy_key_command(self, data, user_data):
-        """
-        Delete a Deploy Keys from a repo.
-
-        Command is as follows: !DeleteKey <organization> <repo> <id>
-        :param data:
-        :return:
-        """
-        try:
-            parser = argparse.ArgumentParser()
-            parser.add_argument('org', type=str)
-            parser.add_argument('repo', type=str)
-            parser.add_argument('id', type=str)
-
-            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
-            if len(unknown) > 0:
-                raise SystemExit()
-
-            args = vars(args)
-
-            # Check that we can use this org:
-            real_org = self.org_lookup[args["org"]][0]
-            reponame = extract_repo_name(args["repo"])
-            key_id = args['id']
-
-        except KeyError as ke:
-            send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
-                       .format(user_data["name"]), markdown=True)
-            return
-
-        except SystemExit as _:
-            send_info(data["channel"], "@{}: `!DeleteKey` usage is:\n```!DeleteKey <OrgThatHasRepo> <Repo> "
-                                       "<KeyId>```\n"
-                                       "No special characters or spaces in the variables. \n"
-                                       "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
-                      .format(user_data["name"]), markdown=True)
-            return
-
-        # Auth?
-        if self.commands["!DeleteKey"].get("auth"):
-            if not self.commands["!DeleteKey"]["auth"]["plugin"].authenticate(
-                    data, user_data, **self.commands["!DeleteKey"]["auth"]["kwargs"]):
-                return
-
-        # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
-
-        # Check that the repo exists:
-        repo_data = self.check_gh_for_existing_repo(reponame, real_org)
-        if not (repo_data):
-            send_error(data["channel"], "@{}: This repository does not exist in {}.".format(user_data["name"], real_org))
-            return
-
-        # Delete the Deploy Key
-        result = self.delete_repo_deploy_key(data, user_data, reponame, real_org, key_id)
-
-        if result == False:
-            send_info(data["channel"], "@{}: Error deleting deploy key ID *{}*.".format(user_data["name"], key_id))
-            return
-
-        # Done:
-        send_raw(data["channel"], text="Deploy Key ID *{}* successfully deleted from *{}*\n\n".format(key_id, reponame))
-
-    def get_deploy_key_command(self, data, user_data):
-        """
-        List the Deploy Keys for a repo.
-
-        Command is as follows: !GetKey <organization> <repo> <id>
-        :param data:
-        :return:
-        """
-        try:
-            parser = argparse.ArgumentParser()
-            parser.add_argument('org', type=str)
-            parser.add_argument('repo', type=str)
-            parser.add_argument('id', type=str)
-
-            args, unknown = parser.parse_known_args(args=preformat_args(data["text"]))
-            if len(unknown) > 0:
-                raise SystemExit()
-
-            args = vars(args)
-
-            # Check that we can use this org:
-            real_org = self.org_lookup[args["org"]][0]
-            reponame = extract_repo_name(args["repo"])
-            deploy_key_id = args["id"]
-
-        except KeyError as ke:
-            send_error(data["channel"], '@{}: Invalid orgname sent in.  Run `!ListOrgs` to see the valid orgs.'
-                       .format(user_data["name"]), markdown=True)
-            return
-
-        except SystemExit as _:
-            send_info(data["channel"], "@{}: `!GetKey` usage is:\n```!GetKey <OrgThatHasRepo> "
-                                       "<Repo> <KeyID>```\n"
-                                       "No special characters or spaces in the variables. \n"
-                                       "Run `!ListOrgs` to see the list of GitHub Organizations that I manage. "
-                      .format(user_data["name"]), markdown=True)
-            return
-
-        # Auth?
-        if self.commands["!GetKey"].get("auth"):
-            if not self.commands["!GetKey"]["auth"]["plugin"].authenticate(
-                    data, user_data, **self.commands["!GetKey"]["auth"]["kwargs"]):
-                return
-
-        # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
-
-        # Check that the repo exists:
-        repo_data = self.check_gh_for_existing_repo(reponame, real_org)
-        if not (repo_data):
-            send_error(data["channel"], "@{}: This repository does not exist in {}.".format(user_data["name"], real_org))
-            return
-
-        # Grab all Deploy Keys
-        deploy_key = self.get_repo_deploy_key_by_id(
-            data, user_data, reponame, real_org, deploy_key_id)
-
-        if deploy_key == False:
-            send_info(data["channel"], "@{}: Error Retrieving Deploy Key *{}*.".format(user_data["name"], deploy_key_id))
-            return
-
-        # Done:
-        send_info(data["channel"], "@{}: Deploy Key ID *{}*: ```{}```".format(user_data["name"], deploy_key_id, deploy_key['key']), markdown=True)

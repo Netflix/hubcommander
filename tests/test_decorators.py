@@ -347,3 +347,31 @@ def test_uppercase_and_lowercasing(user_data, slack_client):
 
     data = dict(text="!TestCommand \"NoT AlL LoWeRCaSE\" \"ALL lOWERcASE\" \"all Uppercase\"")
     tc.pass_command(data, user_data)
+
+
+def test_cleanup(user_data, slack_client):
+    class TestCommands:
+        def __init__(self):
+            pass
+
+        @hubcommander_command(
+            name="!TestCommand",
+            usage="!TestCommand <arg1> <arg2>",
+            description="This is a test command to make sure that undesirable characters are cleaned up.",
+            required=[
+                dict(name="arg1", properties=dict(type=str, help="This will clean things up")),
+                dict(name="arg2", properties=dict(type=str, help="This will not clean things up."),
+                     cleanup=False),
+            ],
+        )
+        def pass_command(self, data, user_data, arg1, arg2):
+            assert self
+            assert data
+            assert user_data
+            assert arg1 == "all cleaned up!"
+            assert arg2 == "<not all[} cleaned up}"
+
+    tc = TestCommands()
+
+    data = dict(text="!TestCommand \"<all cleaned up!>>][\" \"<not all[} cleaned up}\"")
+    tc.pass_command(data, user_data)

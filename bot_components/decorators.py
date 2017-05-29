@@ -81,6 +81,16 @@ def perform_additional_verification(plugin_obj, args, **kwargs):
                         elif argument.get("lowercase", True):
                             args[real_arg_name] = args[real_arg_name].lower()
 
+                        # Perform cleanups? This will remove things like the annoying macOS "smart quotes",
+                        # and the <>, {}, &lt;&gt; from the variables if `cleanup=False` not set.
+                        if argument.get("cleanup", True):
+                            args[real_arg_name] = args[real_arg_name].replace("<", "") \
+                                .replace(">", "").replace("{", "").replace("}", "") \
+                                .replace(u'\u201C', "\"").replace(u'\u201D', "\"") \
+                                .replace(u'\u2018', "\'").replace(u'\u2019', "\'") \
+                                .replace("[", "").replace("]", "") \
+                                .replace("&lt;", "").replace("&gt;", "")
+
                     # Perform custom validation if needed:
                     if argument.get("validation_func"):
                         validation_kwargs = {}

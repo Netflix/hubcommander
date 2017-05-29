@@ -16,8 +16,7 @@ from hubcommander.bot_components.bot_classes import BotCommander
 from hubcommander.bot_components.decorators import hubcommander_command, auth
 from hubcommander.bot_components.slack_comm import send_info, send_success, send_error, send_raw
 from hubcommander.bot_components.parse_functions import extract_repo_name, parse_toggles
-from hubcommander.command_plugins.github.config import (GITHUB_URL, GITHUB_VERSION, ORGS,
-                                                        USER_COMMAND_DICT)
+from hubcommander.command_plugins.github.config import GITHUB_URL, GITHUB_VERSION, ORGS, USER_COMMAND_DICT
 from hubcommander.command_plugins.github.parse_functions import lookup_real_org, validate_homepage
 from hubcommander.command_plugins.github.decorators import repo_must_exist, github_user_exists, branch_must_exist
 
@@ -153,7 +152,7 @@ class GitHubPlugin(BotCommander):
     @staticmethod
     def list_org_command(data):
         """
-        The "!ListOrgs" command_plugins. Lists all organizations that this bot manages.
+        The "!ListOrgs" command. Lists all organizations that this bot manages.
         :param data:
         :return:
         """
@@ -735,7 +734,8 @@ class GitHubPlugin(BotCommander):
 
         # If we have an error due to invalid key, we are returning False from the API response method
         if not result:
-            send_error(data["channel"], "@{}: The deploy key entered was invalid.".format(user_data["name"], repo))
+            send_error(data["channel"], "@{}: The deploy key entered was invalid -- or -- it already exists."
+                       .format(user_data["name"], repo))
             return
 
         if not result.get('id'):
@@ -1363,7 +1363,7 @@ class GitHubPlugin(BotCommander):
         response = requests.delete('{}{}'.format(GITHUB_URL, api_part), headers=headers, timeout=10)
 
         if response.status_code == 204:
-            return
+            return True
         else:
             message = 'An error was encountered communicating with GitHub: Status Code: {}' \
                 .format(response.status_code)

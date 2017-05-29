@@ -41,9 +41,9 @@ Your plugin should have a `config.py` with a `USER_COMMAND_DICT` to permit custo
 the ability to enable authentication and disable a command. To make the custom config stick, you
 need the following code in your `setup()` method:
 ```
-        # Add user-configurable arguments to the command_plugins dictionary:
-        for cmd, keys in USER_COMMAND_DICT.items():
-            self.commands[cmd].update(keys)
+    # Add user-configurable arguments to the command_plugins dictionary:
+    for cmd, keys in USER_COMMAND_DICT.items():
+        self.commands[cmd].update(keys)
 ```
 
 For command parsing, please take a look at the GitHub plugin for an example for how
@@ -51,11 +51,18 @@ that should be done. All existing plugins are making use of `argparse` with some
 `try`-`except` logic to handle errors, and to be able to print help text.
 
 ### Command Methods
-The command methods take in the following parameters: `data`, and if `user_data_required`, then `user_data` as well.
-`data` contains information about the message that arrived, including the channel that originated the message.
-`data["channel"]` contains the channel for where the message was posted.
+Decorators are provided to perform a lot of the heavy lifting for command functions. All command functions should be
+decorated with `@hubcommander_command()`, and `@auth()`.  The first decorator performs the argument parsing and other
+pre-command validation, the second enables authentication support for the command. Once the arguments are successfully parsed,
+they are then passed into the command function.
 
-`user_data` contains information about the Slack user that issued the command. 
+More details on how the decorators are used are [documented here](decorators.md).
+
+The command methods take in the following parameters: `data`, if `user_data_required`, then `user_data`, as well as
+the remaining parameters defined in `@hubcommander_command`. `data` contains information about the message that arrived,
+including the channel that originated the message. `data["channel"]` contains the channel for where the message was posted.
+
+`user_data` contains information about the Slack user that issued the command.
 `user_data["name"]` is the Slack username of the user that can be used for `@` mentions.
 
 ### Printing Messages
@@ -68,18 +75,10 @@ respectively.
 These functions take in as parameters the Slack channel to post to (from `data["channel"]` in your command method),
 the `text you want to be displayed in the channel`, and whether or not `markdown` should be rendered.
 
-### Add Authentication
-To add authentication, you should mostly copy and pase this code (add your command in):
-```
-        # Auth?
-        if self.commands["<YOUR_COMMAND_HERE>"].get("auth"):
-            if not self.commands["<YOUR_COMMAND_HERE>"]["auth"]["plugin"].authenticate(
-                    data, user_data, **self.commands["<YOUR_COMMAND_HERE>"]["auth"]["kwargs"]):
-                return
-```
+### Add Command Authentication
+To add authentication, you simply decorate the method with `@auth` (after the `@hubcommander_command()` decorator)
 
-Auth code should be executed after the command has been parsed, and before the bot
-makes any changes.
+See the [authentication plugin documentation](authentication.md) for how to enable authentication.
 
 ### Enabling Command Plugins
 To enable the plugin, you must `import` the plugin's `class` in

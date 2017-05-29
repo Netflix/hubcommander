@@ -7,8 +7,10 @@
 .. moduleauthor:: Mike Grima <mgrima@netflix.com>
 """
 
-TOGGLE_ON_VALUES = ["on", "true", "enabled"]
-TOGGLE_OFF_VALUES = ["off", "false", "disabled"]
+import warnings
+
+TOGGLE_ON_VALUES = ["on", "true", "enable", "enabled"]
+TOGGLE_OFF_VALUES = ["off", "false", "disable", "disabled"]
 
 
 class ParseException(Exception):
@@ -29,6 +31,14 @@ class ParseException(Exception):
 
 
 def preformat_args(text):
+    """
+    THIS METHOD IS DEPRECATED! USE THE DECORATORS FOR PARSING!!
+    :param text:
+    :return:
+    """
+    warnings.simplefilter('always', DeprecationWarning)
+    warnings.warn("The function: 'preformat_args' is deprecated. Please use the decorators for "
+                  "argument parsing.", DeprecationWarning)
     return text.lower() \
                .replace('[', '').replace(']', '') \
                .replace('{', '').replace('}', '') \
@@ -37,6 +47,8 @@ def preformat_args(text):
 
 def preformat_args_with_spaces(text, num_quoted):
     """
+    THIS METHOD IS DEPRECATED! USE THE DECORATORS FOR PARSING!!
+
     This method will not only strip out the things that need to be stripped out, but it will also
     ensure that double-quoted objects are extracted as independent arguments.
 
@@ -51,6 +63,9 @@ def preformat_args_with_spaces(text, num_quoted):
     :param num_quoted:
     :return:
     """
+    warnings.simplefilter('always', DeprecationWarning)
+    warnings.warn("The function: 'preformat_args_with_spaces' is deprecated. Please use the decorators for "
+                  "argument parsing.", DeprecationWarning)
     working = text.replace('[', '').replace(']', '') \
         .replace('{', '').replace('}', '') \
         .replace(u'\u201C', "\"").replace(u'\u201D', "\"") \

@@ -36,3 +36,8 @@ on startup.
 Additionally, you will need to uncomment out the `import` statement in 
 [`auth_plugins/enabled_plugins.py`](https://github.com/Netflix/hubcommander/blob/master/auth_plugins/enabled_plugins.py),
 and also uncomment the `"duo": DuoPlugin()` entry in `AUTH_PLUGINS`.
+
+Using Authentication for Custom Commands
+---------
+You need to decorate methods with `@hubcommander_command`, and `@auth`. Please refer to the
+[making plugins](making_plugins.md) documentation for details.

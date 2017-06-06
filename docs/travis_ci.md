@@ -26,8 +26,6 @@ then run the API command to enable Travis CI on the repo.
 
 Configuration
 -------------
-*TODO: Add a flag to the `ORGS` `dict` to specify which organizations Travis CI should be enabled for.*
-
 This plugin requires access to the Travis CI API version 3 
 ([currently in closed BETA](https://developer.travis-ci.org/)). You must contact Travis CI's support 
 and request a GitHub ID to be added into the beta for access to the methods utilized by this plugin. 
@@ -75,6 +73,14 @@ and pro. You do this by executing the
 #### Update the credentials dictionary
 You must update the credentials dictionary that is used on the startup of the bot.
 The fields are specified above.
+
+#### Define the GitHub organizations to enable Travis CI on
+In the Travis CI plugin's [configuration file](https://github.com/Netflix/hubcommander/blob/master/command_plugins/travis_ci/config.py), there is an `ORGS` `dict`.
+This is very similar in nature to the `ORGS` `dict` that exists in the GitHub plugin's configuration file. This
+`dict` defines the GitHub Organizations that Travis CI is enabled on, and the corresponding aliases for those orgs.
+
+#### Define the Travis CI User Agent
+This can be anything of your choosing. Make sure that you set the `USER_AGENT` variable in the Travis CI plugin's config file.
 
 ### Enable the plugin
 To enable the plugin, uncomment the `import` statement in 

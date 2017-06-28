@@ -1,18 +1,23 @@
 HubCommander
 =====================
+<img align="left" src="docs/logos/HC_full_logo.png" alt="HubCommander Logo" width="50%" />
+
 [![NetflixOSS Lifecycle](https://img.shields.io/osslifecycle/Netflix/osstracker.svg)]()
 [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/Netflix/hubcommander)
-
-
-| Service   | Master | Develop |
-|:-----------:|:--------:|:---------:|
-|Travis CI|[![Build Status](https://travis-ci.org/Netflix/hubcommander.svg?branch=master)](https://travis-ci.org/Netflix/hubcommander)|[![Build Status](https://travis-ci.org/Netflix/hubcommander.svg?branch=develop)](https://travis-ci.org/Netflix/hubcommander)|
 
 A user-extendable Slack bot for GitHub organization management.
 
 HubCommander provides a chat-ops means for managing GitHub organizations.
 It creates a simple way to perform privileged GitHub organization management tasks without granting
 administrative or `owner` privileges to your GitHub organization members.
+
+<br />
+<br />
+
+| Service   | Master | Develop |
+|:-----------:|:--------:|:---------:|
+|Travis CI|[![Build Status](https://travis-ci.org/Netflix/hubcommander.svg?branch=master)](https://travis-ci.org/Netflix/hubcommander)|[![Build Status](https://travis-ci.org/Netflix/hubcommander.svg?branch=develop)](https://travis-ci.org/Netflix/hubcommander)|
+
 
 How it works?
 -------------

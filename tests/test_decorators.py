@@ -273,7 +273,7 @@ def test_help_command_with_list(user_data, slack_client):
         usage="!TestCommand <testThing>",
         description="This is a test command to test help text for things in lists",
         required=[
-            dict(name="test_thing", properties=dict(type=str, help="Must be one of: `{values}`"),
+            dict(name="test_thing", properties=dict(type=str.lower, help="Must be one of: `{values}`"),
                  choices="valid_values")
         ]
     )
@@ -292,9 +292,15 @@ def test_help_command_with_list(user_data, slack_client):
 
     tc = TestCommands()
 
+    # Will assert True
     data = dict(text="!TestCommand one")
     tc.the_command(data, user_data)
 
+    # Will ALSO assert True... we are making sure to lowercase the choices with str.lower as the type:
+    data = dict(text="!TestCommand ThReE")
+    tc.the_command(data, user_data)
+
+    # Will NOT assert true -- this will output help text:
     data = dict(text="!TestCommand", channel="12345")
     tc.the_command(data, user_data)
 
@@ -307,6 +313,7 @@ def test_help_command_with_list(user_data, slack_client):
     slack_client.api_call.assert_called_with("chat.postMessage", channel="12345", as_user=True,
                                              attachments=json.dumps([attachment]), text=" ")
 
+    # Will NOT assert true
     data = dict(text="!TestCommand alskjfasdlkf", channel="12345")
     tc.the_command(data, user_data)
     attachment = {

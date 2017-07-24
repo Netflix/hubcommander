@@ -900,7 +900,7 @@ class GitHubPlugin(BotCommander):
             else:
                 send_success(data["channel"],
                              "@{}: The topics: `{topics}` were applied "
-                             "to the repo: {repo}".format(user_data["name"], topics=",".join(topic_list), repo=repo),
+                             "to the repo: {repo}".format(user_data["name"], topics=", ".join(topic_list), repo=repo),
                              markdown=True)
 
     def check_if_repo_exists(self, data, user_data, reponame, real_org):

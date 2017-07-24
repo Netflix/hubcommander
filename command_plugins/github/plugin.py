@@ -127,6 +127,13 @@ class GitHubPlugin(BotCommander):
                 "help": "Get Deploy Key Public Key",
                 "enabled": True
             },
+            "!SetTopics": {
+                "command": "!SetTopics",
+                "func": self.set_repo_topics_command,
+                "user_data_required": True,
+                "help": "Sets the Topics for a GitHub repo",
+                "enabled": True
+            }
         }
         self.token = None
 
@@ -266,8 +273,8 @@ class GitHubPlugin(BotCommander):
                  validation_func=lookup_real_org, validation_func_kwargs={}),
             dict(name="repo", properties=dict(type=str, help="The repository to add the outside collaborator to."),
                  validation_func=extract_repo_name, validation_func_kwargs={}),
-            dict(name="permission", properties=dict(type=str, help="The permission to grant, must be one "
-                                                                   "of: `{values}`"),
+            dict(name="permission", properties=dict(type=str.lower, help="The permission to grant, must be one "
+                                                                         "of: `{values}`"),
                  choices="permitted_permissions"),
         ],
         optional=[]
@@ -323,7 +330,8 @@ class GitHubPlugin(BotCommander):
             dict(name="org", properties=dict(type=str, help="The organization that contains the team."),
                  validation_func=lookup_real_org, validation_func_kwargs={}),
             dict(name="team", properties=dict(type=str, help="The team to add the user to.")),
-            dict(name="role", properties=dict(type=str, help="The role to grant the user. Must be one of: `{values}`"),
+            dict(name="role", properties=dict(type=str.lower, help="The role to grant the user. "
+                                                                   "Must be one of: `{values}`"),
                  choices="permitted_roles"),
         ],
         optional=[]
@@ -600,7 +608,7 @@ class GitHubPlugin(BotCommander):
                  validation_func=lookup_real_org, validation_func_kwargs={}),
             dict(name="repo", properties=dict(type=str, help="The name of the repo to list PRs on."),
                  validation_func=extract_repo_name, validation_func_kwargs={}),
-            dict(name="state", properties=dict(type=str, help="The state of the PR. Must be one of: `{values}`"),
+            dict(name="state", properties=dict(type=str.lower, help="The state of the PR. Must be one of: `{values}`"),
                  choices="permitted_states")
         ],
         optional=[]
@@ -852,6 +860,49 @@ class GitHubPlugin(BotCommander):
         send_info(data["channel"],
                   "@{}: Deploy Key ID `{}`: ```{}```".format(user_data["name"], id, deploy_key['key']), markdown=True)
 
+    @hubcommander_command(
+        name="!SetTopics",
+        usage="!SetTopics <OrgThatContainsRepo> <RepoToSetTopicsOn> <CommaSeparatedListOfTopics>",
+        description="This sets (or clears) the topics for a repository on GitHub.",
+        required=[
+            dict(name="org", properties=dict(type=str, help="The organization that contains the repo."),
+                 validation_func=lookup_real_org, validation_func_kwargs={}),
+            dict(name="repo", properties=dict(type=str, help="The name of the repo to set the topics on."),
+                 lowercase=False, validation_func=extract_repo_name, validation_func_kwargs={}),
+
+        ],
+        optional=[
+            dict(name="topics", properties=dict(nargs="?", default="", type=str,
+                                                help="A comma separated list of topics to set on a repo. If"
+                                                     " omitted, this will clear out the topics."
+                                                     "Note: This will replace all existing topics."))
+        ]
+    )
+    @auth()
+    def set_repo_topics_command(self, data, user_data, org, repo, topics):
+        # Make the topics a list:
+        if topics == "":
+            topic_list = []
+        else:
+            topic_list = topics.split(",")
+
+        # Output that we are doing work:
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+
+        # Set the topics:
+        if self.set_repo_topics(data, user_data, org, repo, topic_list):
+            # Done:
+            if len(topic_list) == 0:
+                send_info(data["channel"],
+                          "@{}: The repo: {repo}'s topics were cleared.".format(user_data["name"], repo=repo),
+                          markdown=True)
+
+            else:
+                send_info(data["channel"],
+                          "@{}: The topics: `{topics}` were applied "
+                          "to the repo: {repo}".format(user_data["name"], topics=",".join(topic_list), repo=repo),
+                          markdown=True)
+
     def check_if_repo_exists(self, data, user_data, reponame, real_org):
         try:
             result = self.check_gh_for_existing_repo(reponame, real_org)
@@ -912,6 +963,22 @@ class GitHubPlugin(BotCommander):
         except requests.exceptions.RequestException as re:
             send_error(data["channel"],
                        "@{}: Problem encountered while getting pull requests from the repository.\n"
+                       "The response code from GitHub was: {}".format(user_data["name"], str(re)))
+            return False
+
+        except Exception as e:
+            send_error(data["channel"],
+                       "@{}: Problem encountered while parsing the response.\n"
+                       "Here are the details: {}".format(user_data["name"], str(e)))
+            return False
+
+    def set_repo_topics(self, data, user_data, reponame, real_org, topics, **kwargs):
+        try:
+            return self.set_repo_topics_http(reponame, real_org, topics, **kwargs)
+
+        except requests.exceptions.RequestException as re:
+            send_error(data["channel"],
+                       "@{}: Problem encountered while setting topics to the repository.\n"
                        "The response code from GitHub was: {}".format(user_data["name"], str(re)))
             return False
 
@@ -1056,6 +1123,35 @@ class GitHubPlugin(BotCommander):
             message = 'An error was encountered communicating with GitHub: Status Code: {}' \
                 .format(response.status_code)
             raise requests.exceptions.RequestException(message)
+
+    def set_repo_topics_http(self, org, repo, topics, **kwargs):
+        """
+        Set topics on a repo.
+        See: https://developer.github.com/v3/repos/#replace-all-topics-for-a-repository
+        :param org:
+        :param repo:
+        :param topics:
+        :param kwargs:
+        :return:
+        """
+        headers = {
+            'Authorization': 'token {}'.format(self.token),
+            'Accept': "application/vnd.github.mercy-preview+json"
+        }
+
+        data = {"names": topics}
+
+        api_part = 'repos/{}/{}/topics'.format(org, repo)
+
+        response = requests.put('{}{}'.format(GITHUB_URL, api_part), data=json.dumps(data),
+                                headers=headers, timeout=10)
+
+        if response.status_code != 200:
+            message = 'An error was encountered communicating with GitHub: Status Code: {}' \
+                .format(response.status_code)
+            raise requests.exceptions.RequestException(message)
+
+        return True
 
     def add_outside_collab_to_repo(self, outside_collab_id, repo_name, real_org, permission):
         headers = {

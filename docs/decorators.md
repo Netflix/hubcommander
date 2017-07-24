@@ -86,13 +86,16 @@ Instead, `@hubcommander_command` has an abstraction layer that can take care of 
 
 Here is an example of a multiple choice argument, as seen in the `!ListPRs` command:
 ```
-    dict(name="state", properties=dict(type=str, help="The state of the PR. Must be one of: `{values}`"),
+    dict(name="state", properties=dict(type=str.lower, help="The state of the PR. Must be one of: `{values}`"),
          choices="permitted_states")
 ```
 
 In here, `choices` refers to the name of the `plugin.commands[THECOMMANDHERE][AListOfAvailableChoices]`. It is the name
 of the `list` within the plugin's command configuration that contains the available choices for the argument. This is done
 because it allows the user of HubCommander to override this list in the plugin's configuration.
+
+Also keep note of the `type`. The `type` in the example above is set to `str.lower`. This is to ensure that you
+have case insensitivity in the parsed command. This is documented on StackOverflow [here](https://stackoverflow.com/questions/27616778/case-insensitive-argparse-choices/27616814).
 
 Additionally, the `help` text is altered to include `{values}`. The `@hubcommander_command` decorator will properly format
 the help text for that argument and fill in `{values}` with a comma separated list of the values in the specified list.

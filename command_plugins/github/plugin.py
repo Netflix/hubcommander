@@ -874,7 +874,7 @@ class GitHubPlugin(BotCommander):
         optional=[
             dict(name="topics", properties=dict(nargs="?", default="", type=str,
                                                 help="A comma separated list of topics to set on a repo. If"
-                                                     " omitted, this will clear out the topics."
+                                                     " omitted, this will clear out the topics. "
                                                      "Note: This will replace all existing topics."))
         ]
     )
@@ -893,15 +893,15 @@ class GitHubPlugin(BotCommander):
         if self.set_repo_topics(data, user_data, org, repo, topic_list):
             # Done:
             if len(topic_list) == 0:
-                send_info(data["channel"],
-                          "@{}: The repo: {repo}'s topics were cleared.".format(user_data["name"], repo=repo),
-                          markdown=True)
+                send_success(data["channel"],
+                             "@{}: The repo: {repo}'s topics were cleared.".format(user_data["name"], repo=repo),
+                             markdown=True)
 
             else:
-                send_info(data["channel"],
-                          "@{}: The topics: `{topics}` were applied "
-                          "to the repo: {repo}".format(user_data["name"], topics=",".join(topic_list), repo=repo),
-                          markdown=True)
+                send_success(data["channel"],
+                             "@{}: The topics: `{topics}` were applied "
+                             "to the repo: {repo}".format(user_data["name"], topics=",".join(topic_list), repo=repo),
+                             markdown=True)
 
     def check_if_repo_exists(self, data, user_data, reponame, real_org):
         try:

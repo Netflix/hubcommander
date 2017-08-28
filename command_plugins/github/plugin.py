@@ -1165,7 +1165,8 @@ class GitHubPlugin(BotCommander):
         api_part = 'repos/{}/{}/collaborators/{}'.format(real_org, repo_name, outside_collab_id)
         response = requests.put('{}{}'.format(GITHUB_URL, api_part), data=json.dumps(data), headers=headers, timeout=10)
 
-        if response.status_code != 204:
+        # GitHub response code flakiness...
+        if response.status_code not in [201, 204]:
             raise ValueError(response.status_code)
 
     def create_new_repo(self, repo_to_create, org, visibility):
@@ -1230,7 +1231,8 @@ class GitHubPlugin(BotCommander):
             timeout=10
         )
 
-        if response.status_code != 204:
+        # GitHub response code flakiness...
+        if response.status_code not in [201, 204]:
             message = 'An error was encountered communicating with GitHub (setting repo perms): Status Code: {}' \
                 .format(response.status_code)
             raise requests.exceptions.RequestException(message)

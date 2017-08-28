@@ -1188,7 +1188,8 @@ class GitHubPlugin(BotCommander):
             timeout=10
         )
 
-        if response.status_code != 201:
+        # GitHub response code flakiness...
+        if response.status_code not in [201, 204]:
             message = 'An error was encountered communicating with GitHub: Status Code: {}' \
                 .format(response.status_code)
             raise requests.exceptions.RequestException(message)

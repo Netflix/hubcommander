@@ -16,9 +16,6 @@ HubCommander is dependent on the [slackhq/python-rtmbot](https://github.com/slac
 release [0.4.0](https://github.com/slackhq/python-rtmbot/releases/tag/0.4.0)). Please review details about the
 python-rtmbot before continuing to install HubCommander.
 
-Note: Some work will need to be performed to make it compatible with the latest release of the rtmbot, 
-which has some breaking changes (see https://github.com/Netflix/hubcommander/issues/1 for details).
-
 The python-rtmbot typically operates by placing a plugin in the `plugins` directory.
 
 A docker image for HubCommander is provided to help get up and running as fast as possible. Alternatively, 
@@ -44,7 +41,7 @@ Continue reading this document first. Once done, continue reading the Docker det
 ### For Ubuntu or other Linuxes:
 
 1. Run `sudo apt-get update`
-2. Run `sudo apt-get install python3 python3-venv -y`
+2. Run `sudo apt-get install python3 python3-venv curl git -y`
 3. Proceed to "Continued Instructions"
 
 ### Continued Instructions
@@ -57,6 +54,11 @@ Continue reading this document first. Once done, continue reading the Docker det
    ./hubcommander/basic_install.sh
    ```
 3. Proceed to "Configuration"
+
+## OPTIONAL for unit tests:
+If you are installing for development you will need to install the testing dependencies. 
+Follow the `Install the unit test requirements` section of the [contributing guide](contributing.md#install-the-unit-test-requirements) for details.
+
 
 Configuration
 --------------

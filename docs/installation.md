@@ -22,7 +22,7 @@ A docker image for HubCommander is provided to help get up and running as fast a
 a shell script is provided [here](https://github.com/Netflix/hubcommander/blob/master/basic_install.sh)
 that will fetch the rtmbot, and will `git clone` HubCommander into the `plugins` directory.
 
-Once that is done, you will need to perform all additional configuration steps required to nake it function in your
+Once that is done, you will need to perform all additional configuration steps required to make it function in your
 environment, including credential management.
 
 Install the bot

@@ -2,7 +2,7 @@ HubCommander
 =====================
 <img align="left" src="docs/logos/HC_full_logo.png" alt="HubCommander Logo" width="50%" />
 
-[![NetflixOSS Lifecycle](https://img.shields.io/osslifecycle/Netflix/osstracker.svg)]()
+[![NetflixOSS Lifecycle](https://img.shields.io/badge/NetflixOSS-active-brightgreen.svg)]()
 [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/Netflix/hubcommander)
 
 A user-extendable Slack bot for GitHub organization management.
@@ -44,6 +44,9 @@ Out of the box, HubCommander has the following GitHub features:
 * Granting outside collaborators specific permissions to repositories
 * Repository default branch modification
 * Repository PR listing
+* Repository deploy Key listing/creation/deletion
+* Repository topics creation/deletion
+* Repository branch protection enabling/disabling
 
 HubCommander also features the ability to:
 * Enable Travis CI on a GitHub repo
@@ -55,3 +58,9 @@ to your organizations.
 Installation Documentation
 -----------
 Please see the documentation [here](docs/installation.md) for details.
+
+
+Contributing
+---------------
+If you are interested in contributing to HubCommander, please review the [contributing documentation](docs/contributing.md).
+ 

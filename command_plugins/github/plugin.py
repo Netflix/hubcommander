@@ -874,7 +874,7 @@ class GitHubPlugin(BotCommander):
         optional=[
             dict(name="topics", properties=dict(nargs="?", default="", type=str,
                                                 help="A comma separated list of topics to set on a repo. If"
-                                                     " omitted, this will clear out the topics."
+                                                     " omitted, this will clear out the topics. "
                                                      "Note: This will replace all existing topics."))
         ]
     )
@@ -893,15 +893,15 @@ class GitHubPlugin(BotCommander):
         if self.set_repo_topics(data, user_data, org, repo, topic_list):
             # Done:
             if len(topic_list) == 0:
-                send_info(data["channel"],
-                          "@{}: The repo: {repo}'s topics were cleared.".format(user_data["name"], repo=repo),
-                          markdown=True)
+                send_success(data["channel"],
+                             "@{}: The repo: {repo}'s topics were cleared.".format(user_data["name"], repo=repo),
+                             markdown=True)
 
             else:
-                send_info(data["channel"],
-                          "@{}: The topics: `{topics}` were applied "
-                          "to the repo: {repo}".format(user_data["name"], topics=",".join(topic_list), repo=repo),
-                          markdown=True)
+                send_success(data["channel"],
+                             "@{}: The topics: `{topics}` were applied "
+                             "to the repo: {repo}".format(user_data["name"], topics=", ".join(topic_list), repo=repo),
+                             markdown=True)
 
     def check_if_repo_exists(self, data, user_data, reponame, real_org):
         try:
@@ -1165,7 +1165,8 @@ class GitHubPlugin(BotCommander):
         api_part = 'repos/{}/{}/collaborators/{}'.format(real_org, repo_name, outside_collab_id)
         response = requests.put('{}{}'.format(GITHUB_URL, api_part), data=json.dumps(data), headers=headers, timeout=10)
 
-        if response.status_code != 204:
+        # GitHub response code flakiness...
+        if response.status_code not in [201, 204]:
             raise ValueError(response.status_code)
 
     def create_new_repo(self, repo_to_create, org, visibility):
@@ -1188,7 +1189,8 @@ class GitHubPlugin(BotCommander):
             timeout=10
         )
 
-        if response.status_code != 201:
+        # GitHub response code flakiness...
+        if response.status_code not in [201, 204]:
             message = 'An error was encountered communicating with GitHub: Status Code: {}' \
                 .format(response.status_code)
             raise requests.exceptions.RequestException(message)
@@ -1229,7 +1231,8 @@ class GitHubPlugin(BotCommander):
             timeout=10
         )
 
-        if response.status_code != 204:
+        # GitHub response code flakiness...
+        if response.status_code not in [201, 204]:
             message = 'An error was encountered communicating with GitHub (setting repo perms): Status Code: {}' \
                 .format(response.status_code)
             raise requests.exceptions.RequestException(message)

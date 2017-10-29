@@ -25,7 +25,7 @@ def say(channel, attachments, text=None, ephemeral=False, ephemeral_user=None):
     :return:
     """
     if text is None:
-        text=" "
+        text = " "
 
     if ephemeral:
         bot_components.SLACK_CLIENT.api_call("chat.postEphemeral",

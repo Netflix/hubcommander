@@ -114,7 +114,6 @@ def send_raw(channel, text, ephemeral_user=None, thread=None):
     :param thread:
     :return:
     """
-
     say(channel, None, text, ephemeral_user=ephemeral_user, thread=thread)
 
 

@@ -57,8 +57,8 @@ def test_hubcommander_command_required(user_data, slack_client):
         "color": WORKING_COLOR,
         "mrkdwn_in": ["text"]
     }
-    slack_client.api_call.assert_called_with("chat.postMessage", channel="12345", as_user=True,
-                                             attachments=json.dumps([attachment]), text=" ")
+    slack_client.api_call.assert_called_with("chat.postEphemeral", channel="12345", as_user=True,
+                                             attachments=json.dumps([attachment]), text=" ", user=user_data["id"])
 
 
 def test_hubcommander_command_optional(user_data, slack_client):
@@ -138,8 +138,8 @@ def test_hubcommander_command_with_custom_validation(user_data, slack_client):
         "color": "danger",
         "mrkdwn_in": ["text"]
     }
-    slack_client.api_call.assert_called_with("chat.postMessage", channel="12345", as_user=True,
-                                             attachments=json.dumps([attachment]), text=" ")
+    slack_client.api_call.assert_called_with("chat.postEphemeral", channel="12345", as_user=True,
+                                             attachments=json.dumps([attachment]), text=" ", user=user_data["id"])
 
 
 def test_auth_decorator(user_data, slack_client, auth_plugin):
@@ -310,8 +310,8 @@ def test_help_command_with_list(user_data, slack_client):
         "color": WORKING_COLOR,
         "mrkdwn_in": ["text"]
     }
-    slack_client.api_call.assert_called_with("chat.postMessage", channel="12345", as_user=True,
-                                             attachments=json.dumps([attachment]), text=" ")
+    slack_client.api_call.assert_called_with("chat.postEphemeral", channel="12345", as_user=True,
+                                             attachments=json.dumps([attachment]), text=" ", user=user_data["id"])
 
     # Will NOT assert true
     data = dict(text="!TestCommand alskjfasdlkf", channel="12345")
@@ -321,8 +321,8 @@ def test_help_command_with_list(user_data, slack_client):
         "color": WORKING_COLOR,
         "mrkdwn_in": ["text"]
     }
-    slack_client.api_call.assert_called_with("chat.postMessage", channel="12345", as_user=True,
-                                             attachments=json.dumps([attachment]), text=" ")
+    slack_client.api_call.assert_called_with("chat.postEphemeral", channel="12345", as_user=True,
+                                             attachments=json.dumps([attachment]), text=" ", user=user_data["id"])
 
 
 def test_uppercase_and_lowercasing(user_data, slack_client):

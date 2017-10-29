@@ -115,7 +115,7 @@ class TravisPlugin(BotCommander):
                 rows.append([alias, org[0]])
 
         send_info(data["channel"], "Travis CI is enabled on the following orgs:\n"
-                                   "```{}```".format(tabulate(rows, headers=headers)), markdown=True)
+                                   "```{}```".format(tabulate(rows, headers=headers)), markdown=True, thread=data["ts"])
 
     @hubcommander_command(
         name="!EnableTravis",
@@ -145,7 +145,7 @@ class TravisPlugin(BotCommander):
         github_plugin = COMMAND_PLUGINS["github"]
 
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]), thread=data["ts"])
 
         # Get the repo information from GitHub:
         try:
@@ -153,34 +153,36 @@ class TravisPlugin(BotCommander):
 
             if not repo_result:
                 send_error(data["channel"],
-                           "@{}: This repository does not exist in {}!".format(user_data["name"], org))
+                           "@{}: This repository does not exist in {}!".format(user_data["name"], org),
+                           thread=data["ts"])
                 return
 
         except Exception as e:
             send_error(data["channel"],
-                       "@{}: I encountered a problem:\n\n{}".format(user_data["name"], e))
+                       "@{}: I encountered a problem:\n\n{}".format(user_data["name"], e), thread=data["ts"])
             return
 
         which = "pro" if repo_result["private"] else "public"
 
         try:
             # Sync with Travis CI so that it knows about the repo:
-            send_info(data["channel"], ":skull: Need to sync Travis CI with GitHub. Please wait...")
+            send_info(data["channel"], ":skull: Need to sync Travis CI with GitHub. Please wait...", thread=data["ts"])
             self.sync_with_travis(which)
 
-            send_info(data["channel"], ":guitar: Synced! Going to enable Travis CI on the repo now...")
+            send_info(data["channel"], ":guitar: Synced! Going to enable Travis CI on the repo now...",
+                      thread=data["ts"])
 
             travis_data = self.look_for_repo(which, repo_result)
             if not travis_data:
                 send_error(data["channel"], "@{}: Couldn't find the repo in Travis for some reason...\n\n".format(
-                    user_data["name"]))
+                    user_data["name"]), thread=data["ts"])
                 return
 
             # Is it already enabled?
             if travis_data["active"]:
                 send_success(data["channel"],
                              "@{}: Travis CI is already enabled on {}/{}.\n\n".format(
-                                 user_data["name"], org, repo))
+                                 user_data["name"], org, repo), thread=data["ts"])
                 return
 
             # Enable it:
@@ -188,11 +190,12 @@ class TravisPlugin(BotCommander):
 
         except Exception as e:
             send_error(data["channel"],
-                       "@{}: I encountered a problem communicating with Travis CI:\n\n{}".format(user_data["name"], e))
+                       "@{}: I encountered a problem communicating with Travis CI:\n\n{}".format(user_data["name"], e),
+                       thread=data["ts"])
             return
 
         message = "@{}: Travis CI has been enabled on {}/{}.\n\n".format(user_data["name"], org, repo)
-        send_success(data["channel"], message)
+        send_success(data["channel"], message, thread=data["ts"])
 
     def sync_with_travis(self, which):
         """

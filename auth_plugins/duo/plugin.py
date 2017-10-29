@@ -40,7 +40,7 @@ class DuoPlugin(BotAuthPlugin):
 
     def authenticate(self, data, user_data, **kwargs):
         send_info(data["channel"], "🎟 @{}: Sending a Duo notification to your device. You must approve!"
-                  .format(user_data["name"]), markdown=True)
+                  .format(user_data["name"]), markdown=True, ephemeral_user=user_data["id"])
 
         try:
             result = self._perform_auth(user_data)
@@ -68,7 +68,7 @@ class DuoPlugin(BotAuthPlugin):
 
         # All Good:
         send_success(data["channel"], "🎸 @{}: Duo approved! Completing request..."
-                     .format(user_data["name"]), markdown=True)
+                     .format(user_data["name"]), markdown=True, ephemeral_user=user_data["id"])
         return True
 
     def _perform_auth(self, user_data):

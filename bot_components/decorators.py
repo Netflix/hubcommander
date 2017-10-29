@@ -146,7 +146,8 @@ def hubcommander_command(**kwargs):
                 args = vars(parser.parse_args(split_args))
 
             except SystemExit as _:
-                send_info(data["channel"], format_help_text(data, user_data, **kwargs), markdown=True)
+                send_info(data["channel"], format_help_text(data, user_data, **kwargs), markdown=True,
+                          ephemeral_user=user_data["id"])
                 return
 
             # Perform additional verification:
@@ -154,7 +155,7 @@ def hubcommander_command(**kwargs):
                 args = perform_additional_verification(plugin_obj, args, **kwargs)
             except ParseException as pe:
                 send_error(data["channel"], pe.format_proper_usage(user_data["name"]),
-                           markdown=True)
+                           markdown=True, ephemeral_user=user_data["id"])
                 return
             except Exception as e:
                 send_error(data["channel"], "An exception was encountered while running validation for the input. "

@@ -25,6 +25,13 @@ class RepeatPlugin(BotCommander):
                 "help": "Just repeats text passed in (for testing and debugging purposes)",
                 "user_data_required": True,
                 "enabled": True
+            },
+            "!RepeatThread": {
+                "command": "!RepeatThread",
+                "func": self.repeat_thread_command,
+                "help": "Just repeats text passed in (for testing and debugging purposes -- but in a thread)",
+                "user_data_required": True,
+                "enabled": True
             }
         }
 
@@ -44,3 +51,15 @@ class RepeatPlugin(BotCommander):
     def repeat_command(self, data, user_data, text):
         new_text = data['text'].split(' ', 1)[1]
         send_info(data["channel"], new_text, markdown=True, ephemeral=True, ephemeral_user=user_data["id"])
+
+    @hubcommander_command(
+        name="!RepeatThread",
+        usage="!RepeatThread <TextToRepeat>",
+        description="Text to repeat to test if HubCommander is working (but threaded).",
+        required=[
+            dict(name="text", properties=dict(type=str, help="Text to repeat.")),
+        ]
+    )
+    def repeat_thread_command(self, data, user_data, text):
+        new_text = data['text'].split(' ', 1)[1]
+        send_info(data["channel"], new_text, markdown=True, thread=data["ts"])

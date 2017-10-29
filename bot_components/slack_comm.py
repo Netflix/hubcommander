@@ -14,7 +14,7 @@ from hubcommander import bot_components
 WORKING_COLOR = "#439FE0"
 
 
-def say(channel, attachments, text=None, ephemeral=False, ephemeral_user=None):
+def say(channel, attachments, text=None, ephemeral=False, ephemeral_user=None, thread=None):
     """
     Sends a message (with attachments) to Slack. Use the send_* methods instead.
     :param channel:
@@ -22,33 +22,36 @@ def say(channel, attachments, text=None, ephemeral=False, ephemeral_user=None):
     :param text:
     :param ephemeral: If True, then send send ephemeral message
     :param ephemeral_user:ID of the user who will receive the ephemeral message
+    :param thread:
     :return:
     """
-    if text is None:
-        text = " "
+    kwargs_to_send = {
+        "channel": channel,
+        "text": text if text else " ",
+        "attachments": json.dumps(attachments),
+        "as_user": True
+    }
+    verb = "chat.postMessage"
 
     if ephemeral:
-        bot_components.SLACK_CLIENT.api_call("chat.postEphemeral",
-                                             channel=channel, text=text,
-                                             user=ephemeral_user,
-                                             attachments=json.dumps(attachments),
-                                             as_user=True)
-    else:
-        bot_components.SLACK_CLIENT.api_call("chat.postMessage",
-                                             channel=channel, text=text,
-                                             attachments=json.dumps(attachments),
-                                             as_user=True)
+        kwargs_to_send["user"] = ephemeral_user
+        verb = "chat.postEphemeral"
+
+    if thread:
+        kwargs_to_send["thread_ts"] = thread
+
+    bot_components.SLACK_CLIENT.api_call(verb, **kwargs_to_send)
 
 
-def send_error(channel, text, markdown=False, ephemeral=False,
-               ephemeral_user=None):
+def send_error(channel, text, markdown=False, ephemeral=False, ephemeral_user=None, thread=None):
     """
     Sends an "error" message to Slack.
     :param channel:
     :param text:
     :param markdown: If True, then look for markdown in the message.
-    :param ephemeral: True to send ephemeral mesaage
+    :param ephemeral: True to send ephemeral message
     :param ephemeral_user:ID of the user who will receive the ephemeral message
+    :param thread:
     :return:
     """
     attachment = {
@@ -59,12 +62,10 @@ def send_error(channel, text, markdown=False, ephemeral=False,
     if markdown:
         attachment["mrkdwn_in"] = ["text"]
 
-    say(channel, [attachment], ephemeral=ephemeral,
-        ephemeral_user=ephemeral_user)
+    say(channel, [attachment], ephemeral=ephemeral, ephemeral_user=ephemeral_user, thread=thread)
 
 
-def send_info(channel, text, markdown=False, ephemeral=False,
-              ephemeral_user=None):
+def send_info(channel, text, markdown=False, ephemeral=False, ephemeral_user=None, thread=None):
     """
     Sends an "info" message to Slack.
     :param channel:
@@ -72,6 +73,7 @@ def send_info(channel, text, markdown=False, ephemeral=False,
     :param markdown: If True, then look for markdown in the message.
     :param ephemeral: True to send ephemeral mesaage
     :param ephemeral_user:ID of the user who will receive the ephemeral message
+    :param thread:
     :return:
     """
     attachment = {
@@ -82,20 +84,18 @@ def send_info(channel, text, markdown=False, ephemeral=False,
     if markdown:
         attachment["mrkdwn_in"] = ["text"]
 
-    say(channel, [attachment], ephemeral=ephemeral,
-        ephemeral_user=ephemeral_user)
+    say(channel, [attachment], ephemeral=ephemeral, ephemeral_user=ephemeral_user, thread=thread)
 
 
-def send_success(channel, text, markdown=False, ephemeral=False,
-                 ephemeral_user=None):
+def send_success(channel, text, markdown=False, ephemeral=False, ephemeral_user=None, thread=None):
     """
     Sends an "success" message to Slack.
     :param channel:
     :param text:
-    :param image: A choice of "awesome", "yougotit".
     :param markdown: If True, then look for markdown in the message.
-    :param ephemeral: True to send ephemeral mesaage
+    :param ephemeral: True to send ephemeral message
     :param ephemeral_user:ID of the user who will receive the ephemeral message
+    :param thread:
     :return:
     """
     attachment = {
@@ -106,21 +106,20 @@ def send_success(channel, text, markdown=False, ephemeral=False,
     if markdown:
         attachment["mrkdwn_in"] = ["text"]
 
-    say(channel, [attachment], ephemeral=ephemeral,
-        ephemeral_user=ephemeral_user)
+    say(channel, [attachment], ephemeral=ephemeral, ephemeral_user=ephemeral_user, thread=thread)
 
 
-def send_raw(channel, text, ephemeral=False, ephemeral_user=None):
+def send_raw(channel, text, ephemeral=False, ephemeral_user=None, thread=None):
     """
     Sends an "info" message to Slack.
     :param channel:
     :param text:
-    :param ephemeral: True to send ephemeral mesaage
+    :param ephemeral: True to send ephemeral message
     :param ephemeral_user:ID of the user who will receive the ephemeral message
     :return:
     """
 
-    say(channel, None, text, ephemeral=ephemeral, ephemeral_user=ephemeral_user)
+    say(channel, None, text, ephemeral=ephemeral, ephemeral_user=ephemeral_user, thread=thread)
 
 
 def get_user_data(data):
@@ -137,4 +136,3 @@ def get_user_data(data):
 
     else:
         return result["user"], None
-

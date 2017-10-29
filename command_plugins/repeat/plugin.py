@@ -7,8 +7,7 @@
 .. moduleauthor:: Mike Grima <mgrima@netflix.com>
 .. moduleauthor:: Duncan Godfrey @duncangodfrey
 """
-
-
+from hubcommander.bot_components.decorators import hubcommander_command
 from hubcommander.bot_components.bot_classes import BotCommander
 from hubcommander.bot_components.slack_comm import send_info
 
@@ -24,7 +23,7 @@ class RepeatPlugin(BotCommander):
                 "command": "!Repeat",
                 "func": self.repeat_command,
                 "help": "Just repeats text passed in (for testing and debugging purposes)",
-                "user_data_required": False,
+                "user_data_required": True,
                 "enabled": True
             }
         }
@@ -34,6 +33,14 @@ class RepeatPlugin(BotCommander):
         for cmd, keys in USER_COMMAND_DICT.items():
             self.commands[cmd].update(keys)
 
-    def repeat_command(self, data):
+    @hubcommander_command(
+        name="!Repeat",
+        usage="!Repeat <TextToRepeat>",
+        description="Text to repeat to test if HubCommander is working.",
+        required=[
+            dict(name="text", properties=dict(type=str, help="Text to repeat.")),
+        ]
+    )
+    def repeat_command(self, data, user_data, text):
         new_text = data['text'].split(' ', 1)[1]
-        send_info(data["channel"], new_text, markdown=True)
+        send_info(data["channel"], new_text, markdown=True, ephemeral=True, ephemeral_user=user_data["id"])

@@ -75,6 +75,19 @@ respectively.
 These functions take in as parameters the Slack channel to post to (from `data["channel"]` in your command method),
 the `text you want to be displayed in the channel`, and whether or not `markdown` should be rendered.
 
+These functions also support threads and ephemeral messages.
+
+#### Threads
+For sending messages within Slack threads, Slack requires a timestamp to be sent over. HubCommander provides this in the
+`data` dictionary's `ts` value that gets passed into each command function. To use this, in your `send_*` function call, simply
+pass in `thread=data["ts"]`. An example of this in action is [here](https://github.com/Netflix/hubcommander/blob/develop/command_plugins/repeat/plugin.py#L65).
+
+#### Ephemeral Messages
+Sending ephemeral messages is similar to threads. For this, your command must receive the `user_data` dictionary that gets passed into
+each command function. To send the ephemeral message to the user, you need to pass into the `send_*` function call
+`ephemeral_user=user_data["id"]`. An example of this in action is [here](https://github.com/Netflix/hubcommander/blob/develop/command_plugins/repeat/plugin.py#L53).
+
+
 ### Add Command Authentication
 To add authentication, you simply decorate the method with `@auth` (after the `@hubcommander_command()` decorator)
 

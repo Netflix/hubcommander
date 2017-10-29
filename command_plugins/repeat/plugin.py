@@ -50,7 +50,7 @@ class RepeatPlugin(BotCommander):
     )
     def repeat_command(self, data, user_data, text):
         new_text = data['text'].split(' ', 1)[1]
-        send_info(data["channel"], new_text, markdown=True, ephemeral=True, ephemeral_user=user_data["id"])
+        send_info(data["channel"], new_text, markdown=True, ephemeral_user=user_data["id"])
 
     @hubcommander_command(
         name="!RepeatThread",

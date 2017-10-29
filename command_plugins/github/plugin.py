@@ -170,7 +170,7 @@ class GitHubPlugin(BotCommander):
             for alias in org[1]["aliases"]:
                 rows.append([alias, org[0]])
 
-        send_info(data["channel"], "```{}```".format(tabulate(rows, headers=headers)), markdown=True)
+        send_info(data["channel"], "```{}```".format(tabulate(rows, headers=headers)), markdown=True, thread=data["ts"])
 
     @hubcommander_command(
         name="!SetDescription",
@@ -202,7 +202,7 @@ class GitHubPlugin(BotCommander):
         :return:
         """
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]), thread=data["ts"])
 
         # Modify the description:
         if not (self.make_repo_edit(data, user_data, repo, org, description=description)):
@@ -211,11 +211,11 @@ class GitHubPlugin(BotCommander):
         if description == "":
             send_success(data["channel"],
                          "@{}: The {}/{} repository's description field has been cleared."
-                         .format(user_data["name"], org, repo), markdown=True)
+                         .format(user_data["name"], org, repo), markdown=True, thread=data["ts"])
         else:
             send_success(data["channel"],
                          "@{}: The {}/{} repository's description has been modified to:\n"
-                         "`{}`.".format(user_data["name"], org, repo, description), markdown=True)
+                         "`{}`.".format(user_data["name"], org, repo, description), markdown=True, thread=data["ts"])
 
     @hubcommander_command(
         name="!SetHomepage",
@@ -247,7 +247,7 @@ class GitHubPlugin(BotCommander):
         :return:
         """
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]), thread=data["ts"])
 
         # Modify the homepage:
         if not (self.make_repo_edit(data, user_data, repo, org, homepage=homepage)):
@@ -257,11 +257,11 @@ class GitHubPlugin(BotCommander):
         if homepage == "":
             send_success(data["channel"],
                          "@{}: The {}/{} repository's homepage field has been cleared."
-                         .format(user_data["name"], org, repo, homepage), markdown=True)
+                         .format(user_data["name"], org, repo, homepage), markdown=True, thread=data["ts"])
         else:
             send_success(data["channel"],
                          "@{}: The {}/{} repository's homepage has been modified to:\n"
-                         "`{}`.".format(user_data["name"], org, repo, homepage), markdown=True)
+                         "`{}`.".format(user_data["name"], org, repo, homepage), markdown=True, thread=data["ts"])
 
     @hubcommander_command(
         name="!AddCollab",
@@ -296,7 +296,7 @@ class GitHubPlugin(BotCommander):
         :return:
         """
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]), thread=data["ts"])
 
         # Grant access:
         try:
@@ -305,13 +305,13 @@ class GitHubPlugin(BotCommander):
         except ValueError as ve:
             send_error(data["channel"],
                        "@{}: Problem encountered adding the user as an outside collaborator.\n"
-                       "The response code from GitHub was: {}".format(user_data["name"], str(ve)))
+                       "The response code from GitHub was: {}".format(user_data["name"], str(ve)), thread=data["ts"])
             return
 
         except Exception as e:
             send_error(data["channel"],
                        "@{}: Problem encountered adding the user as an outside collaborator.\n"
-                       "Here are the details: {}".format(user_data["name"], str(e)))
+                       "Here are the details: {}".format(user_data["name"], str(e)), thread=data["ts"])
             return
 
         # Done:
@@ -319,7 +319,7 @@ class GitHubPlugin(BotCommander):
                      "@{}: The GitHub user: `{}` has been added as an outside collaborator with `{}` "
                      "permissions to {}/{}.".format(user_data["name"], collab, permission,
                                                     org, repo),
-                     markdown=True)
+                     markdown=True, thread=data["ts"])
 
     @hubcommander_command(
         name="!AddUserToTeam",
@@ -352,13 +352,13 @@ class GitHubPlugin(BotCommander):
         :return:
         """
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]), thread=data["ts"])
 
         # Check if team exists, if it does return the id
         team_id = self.find_team_id_by_name(org, team)
 
         if not team_id:
-            send_error(data["channel"], "The GitHub team does not exist.")
+            send_error(data["channel"], "The GitHub team does not exist.", thread=data["ts"])
             return
 
         # Do it:
@@ -368,13 +368,13 @@ class GitHubPlugin(BotCommander):
         except ValueError as ve:
             send_error(data["channel"],
                        "@{}: Problem encountered adding the user as a team member.\n"
-                       "The response code from GitHub was: {}".format(user_data["name"], str(ve)))
+                       "The response code from GitHub was: {}".format(user_data["name"], str(ve)), thread=data["ts"])
             return
 
         except Exception as e:
             send_error(data["channel"],
                        "@{}: Problem encountered adding the user as a team member.\n"
-                       "Here are the details: {}".format(user_data["name"], str(e)))
+                       "Here are the details: {}".format(user_data["name"], str(e)), thread=data["ts"])
             return
 
         # Done:
@@ -382,7 +382,7 @@ class GitHubPlugin(BotCommander):
                      "@{}: The GitHub user: `{}` has been added as a team member with `{}` "
                      "permissions to {}/{}.".format(user_data["name"], user_id, role,
                                                     org, team),
-                     markdown=True)
+                     markdown=True, thread=data["ts"])
 
     @hubcommander_command(
         name="!CreateRepo",
@@ -411,7 +411,7 @@ class GitHubPlugin(BotCommander):
         :return:
         """
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]), thread=data["ts"])
 
         # Check if the repo already exists:
         try:
@@ -419,12 +419,13 @@ class GitHubPlugin(BotCommander):
 
             if result:
                 send_error(data["channel"],
-                           "@{}: This repository already exists in {}!".format(user_data["name"], org))
+                           "@{}: This repository already exists in {}!".format(user_data["name"], org),
+                           thread=data["ts"])
                 return
 
         except Exception as e:
             send_error(data["channel"],
-                       "@{}: I encountered a problem:\n\n{}".format(user_data["name"], e))
+                       "@{}: I encountered a problem:\n\n{}".format(user_data["name"], e), thread=data["ts"])
 
             return
 
@@ -434,7 +435,7 @@ class GitHubPlugin(BotCommander):
             self.create_new_repo(repo, org, visibility)
         except Exception as e:
             send_error(data["channel"],
-                       "@{}: I encountered a problem:\n\n{}".format(user_data["name"], e))
+                       "@{}: I encountered a problem:\n\n{}".format(user_data["name"], e), thread=data["ts"])
             return
 
         # Need to wait a bit to ensure that the repo actually exists.
@@ -448,7 +449,7 @@ class GitHubPlugin(BotCommander):
         except Exception as e:
             send_error(data["channel"],
                        "@{}: I encountered a problem setting repo permissions for team {team}: \n\n{exc}".format(
-                           user_data["name"], team=perm_dict["name"], exc=e))
+                           user_data["name"], team=perm_dict["name"], exc=e), thread=data["ts"])
             return
 
         # All done!
@@ -461,7 +462,7 @@ class GitHubPlugin(BotCommander):
         message += "The repository is {visibility}.\n" \
                    "You are free to set up the repo as you like.\n".format(visibility=visibility)
 
-        send_success(data["channel"], message)
+        send_success(data["channel"], message, thread=data["ts"])
 
     @hubcommander_command(
         name="!DeleteRepo",
@@ -489,19 +490,19 @@ class GitHubPlugin(BotCommander):
         :return:
         """
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]), thread=data["ts"])
 
         # Delete the repository:
         try:
             self.delete_repo(repo, org)
         except Exception as e:
             send_error(data["channel"],
-                       "@{}: I encountered a problem:\n\n{}".format(user_data["name"], e))
+                       "@{}: I encountered a problem:\n\n{}".format(user_data["name"], e), thread=data["ts"])
             return
 
         # All done!
         message = "@{}: The repo: {} has been deleted from {}.\n".format(user_data["name"], repo, org)
-        send_success(data["channel"], message)
+        send_success(data["channel"], message, thread=data["ts"])
 
     @hubcommander_command(
         name="!SetDefaultBranch",
@@ -535,7 +536,7 @@ class GitHubPlugin(BotCommander):
         :return:
         """
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]), thread=data["ts"])
 
         # Set the default branch:
         if not (self.make_repo_edit(data, user_data, repo, org, default_branch=branch)):
@@ -544,7 +545,7 @@ class GitHubPlugin(BotCommander):
         # Done:
         send_success(data["channel"],
                      "@{}: The {}/{} repository's default branch has been set to: `{}`."
-                     .format(user_data["name"], org, repo, branch), markdown=True)
+                     .format(user_data["name"], org, repo, branch), markdown=True, thread=data["ts"])
 
     @hubcommander_command(
         name="!SetBranchProtection",
@@ -581,7 +582,7 @@ class GitHubPlugin(BotCommander):
         :return:
         """
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]), thread=data["ts"])
 
         # Change the protection status:
         try:
@@ -590,14 +591,14 @@ class GitHubPlugin(BotCommander):
         except requests.exceptions.RequestException as re:
             send_error(data["channel"],
                        "@{}: Problem encountered setting branch protection.\n"
-                       "The response code from GitHub was: {}".format(user_data["name"], str(re)))
+                       "The response code from GitHub was: {}".format(user_data["name"], str(re)), thread=data["ts"])
             return
 
         # Done:
         status = "ENABLED" if toggle else "DISABLED"
         send_success(data["channel"],
                      "@{}: The {}/{} repository's {} branch protection status is now: {}."
-                     .format(user_data["name"], org, repo, branch, status), markdown=True)
+                     .format(user_data["name"], org, repo, branch, status), markdown=True, thread=data["ts"])
 
     @hubcommander_command(
         name="!ListPRs",
@@ -628,14 +629,15 @@ class GitHubPlugin(BotCommander):
         :return:
         """
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]), thread=data["ts"])
 
         # Grab all PRs [All states]
         pull_requests = self.get_repo_prs(data, user_data, repo, org, state)
         if not pull_requests:
             if isinstance(pull_requests, list):
                 send_info(data["channel"],
-                          "@{}: No matching pull requests were found in *{}*.".format(user_data["name"], repo))
+                          "@{}: No matching pull requests were found in *{}*.".format(user_data["name"], repo),
+                          thread=data["ts"])
             return
 
         headers = ["#PR", "Title", "Opened by", "Assignee", "State"]
@@ -644,9 +646,11 @@ class GitHubPlugin(BotCommander):
         for pr in pull_requests:
             assignee = pr['assignee']['login'] if pr['assignee'] is not None else '-'
             rows.append([pr['number'], pr['title'], pr['user']['login'], assignee, pr['state'].title()])
+
         # Done:
         send_raw(data["channel"], text="Repository: *{}* \n\n```{}```".format(repo, tabulate(rows, headers=headers,
-                                                                                             tablefmt='orgtbl')))
+                                                                                             tablefmt='orgtbl')),
+                 thread=data["ts"])
 
     @hubcommander_command(
         name="!ListKeys",
@@ -674,7 +678,7 @@ class GitHubPlugin(BotCommander):
         :return:
         """
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]), thread=data["ts"])
 
         # Grab all Deploy Keys
         deploy_keys = self.get_repo_deploy_keys(data, user_data, repo, org)
@@ -682,7 +686,7 @@ class GitHubPlugin(BotCommander):
         if not (deploy_keys):
             if isinstance(deploy_keys, list):
                 send_info(data["channel"],
-                          "@{}: No deploy keys were found in *{}*.".format(user_data["name"], repo))
+                          "@{}: No deploy keys were found in *{}*.".format(user_data["name"], repo), thread=data["ts"])
             return
 
         headers = ["ID#", "Title", "Read-only", "Created"]
@@ -698,7 +702,8 @@ class GitHubPlugin(BotCommander):
 
         # Done:
         send_raw(data["channel"], text="Deploy Keys: *{}* \n\n```{}```".format(repo, tabulate(rows, headers=headers,
-                                                                                              tablefmt='orgtbl')))
+                                                                                              tablefmt='orgtbl')),
+                 thread=data["ts"])
 
     @hubcommander_command(
         name="!AddKey",
@@ -735,7 +740,7 @@ class GitHubPlugin(BotCommander):
         :return:
         """
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]), thread=data["ts"])
 
         # Add the Deploy Key
         result = self.add_repo_deploy_key(data, user_data, repo, org, title, pubkey, readonly)
@@ -743,17 +748,19 @@ class GitHubPlugin(BotCommander):
         # If we have an error due to invalid key, we are returning False from the API response method
         if not result:
             send_error(data["channel"], "@{}: The deploy key entered was invalid -- or -- it already exists."
-                       .format(user_data["name"], repo))
+                       .format(user_data["name"], repo), thread=data["ts"])
             return
 
         if not result.get('id'):
-            send_error(data["channel"], "@{}: Adding deploy key failed.".format(user_data["name"], repo))
+            send_error(data["channel"], "@{}: Adding deploy key failed.".format(user_data["name"], repo),
+                       thread=data["ts"])
             return
 
         # Done:
         send_raw(data["channel"],
                  text="Deploy Key *{}* with ID *{}* successfully added to *{}*\n\n".format(result['title'],
-                                                                                           result['id'], repo))
+                                                                                           result['id'], repo),
+                 thread=data["ts"])
 
     @hubcommander_command(
         name="!DeleteKey",
@@ -783,7 +790,7 @@ class GitHubPlugin(BotCommander):
         :return:
         """
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]), thread=data["ts"])
 
         # Grab the Deploy Key (check that it exists)
         deploy_key = self.get_repo_deploy_key_by_id(data, user_data, repo, org, id)
@@ -792,10 +799,10 @@ class GitHubPlugin(BotCommander):
                 send_error(data["channel"],
                            "@{}: Deploy Key with ID: `{}` is not present for the {}/{} repo.".format(user_data["name"],
                                                                                                      id, org, repo),
-                           markdown=True)
+                           markdown=True, thread=data["ts"])
             else:
                 send_error(data["channel"], "@{}: Error Retrieving Deploy Key `{}`.".format(user_data["name"], id),
-                           markdown=True)
+                           markdown=True, thread=data["ts"])
 
             return
 
@@ -804,11 +811,12 @@ class GitHubPlugin(BotCommander):
 
         if not result:
             send_info(data["channel"], "@{}: Error deleting deploy key ID *{}*.".format(user_data["name"], id),
-                      markdown=True)
+                      markdown=True, thread=data["ts"])
             return
 
         # Done:
-        send_raw(data["channel"], text="Deploy Key ID *{}* successfully deleted from *{}*\n\n".format(id, repo))
+        send_raw(data["channel"], text="Deploy Key ID *{}* successfully deleted from *{}*\n\n".format(id, repo),
+                 thread=data["ts"])
 
     @hubcommander_command(
         name="!GetKey",
@@ -839,7 +847,7 @@ class GitHubPlugin(BotCommander):
         :return:
         """
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]), thread=data["ts"])
 
         # Grab the Deploy Key
         deploy_key = self.get_repo_deploy_key_by_id(data, user_data, repo, org, id)
@@ -849,16 +857,17 @@ class GitHubPlugin(BotCommander):
                 send_error(data["channel"],
                            "@{}: Deploy Key with ID: `{}` is not present for the {}/{} repo.".format(user_data["name"],
                                                                                                      id, org, repo),
-                           markdown=True)
+                           markdown=True, thread=data["ts"])
             else:
                 send_error(data["channel"], "@{}: Error Retrieving Deploy Key `{}`.".format(user_data["name"], id),
-                           markdown=True)
+                           markdown=True, thread=data["ts"])
 
             return
 
         # Done:
         send_info(data["channel"],
-                  "@{}: Deploy Key ID `{}`: ```{}```".format(user_data["name"], id, deploy_key['key']), markdown=True)
+                  "@{}: Deploy Key ID `{}`: ```{}```".format(user_data["name"], id, deploy_key['key']), markdown=True,
+                  thread=data["ts"])
 
     @hubcommander_command(
         name="!SetTopics",
@@ -887,7 +896,7 @@ class GitHubPlugin(BotCommander):
             topic_list = topics.split(",")
 
         # Output that we are doing work:
-        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]))
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]), thread=data["ts"])
 
         # Set the topics:
         if self.set_repo_topics(data, user_data, org, repo, topic_list):
@@ -895,13 +904,13 @@ class GitHubPlugin(BotCommander):
             if len(topic_list) == 0:
                 send_success(data["channel"],
                              "@{}: The repo: {repo}'s topics were cleared.".format(user_data["name"], repo=repo),
-                             markdown=True)
+                             markdown=True, thread=data["ts"])
 
             else:
                 send_success(data["channel"],
                              "@{}: The topics: `{topics}` were applied "
                              "to the repo: {repo}".format(user_data["name"], topics=", ".join(topic_list), repo=repo),
-                             markdown=True)
+                             markdown=True, thread=data["ts"])
 
     def check_if_repo_exists(self, data, user_data, reponame, real_org):
         try:
@@ -909,14 +918,15 @@ class GitHubPlugin(BotCommander):
 
             if not result:
                 send_error(data["channel"],
-                           "@{}: This repository does not exist in {}.".format(user_data["name"], real_org))
+                           "@{}: This repository does not exist in {}.".format(user_data["name"], real_org),
+                           thread=data["ts"])
                 return False
 
             return True
 
         except Exception as e:
             send_error(data["channel"],
-                       "@{}: I encountered a problem:\n\n{}".format(user_data["name"], e))
+                       "@{}: I encountered a problem:\n\n{}".format(user_data["name"], e), thread=data["ts"])
             return False
 
     def make_repo_edit(self, data, user_data, reponame, real_org, **kwargs):
@@ -926,13 +936,14 @@ class GitHubPlugin(BotCommander):
         except requests.exceptions.RequestException as re:
             send_error(data["channel"],
                        "@{}: Problem encountered modifying the repository.\n"
-                       "The response code from GitHub was: {}".format(user_data["name"], str(re)))
+                       "The response code from GitHub was: {}".format(user_data["name"], str(re)), thread=data["ts"])
             return False
 
         except Exception as e:
             send_error(data["channel"],
                        "@{}: Problem encountered setting the {} field.\n"
-                       "Here are the details: {}".format(kwargs.keys()[0], user_data["name"], str(e)))
+                       "Here are the details: {}".format(kwargs.keys()[0], user_data["name"], str(e)),
+                       thread=data["ts"])
             return False
 
         return True
@@ -963,13 +974,13 @@ class GitHubPlugin(BotCommander):
         except requests.exceptions.RequestException as re:
             send_error(data["channel"],
                        "@{}: Problem encountered while getting pull requests from the repository.\n"
-                       "The response code from GitHub was: {}".format(user_data["name"], str(re)))
+                       "The response code from GitHub was: {}".format(user_data["name"], str(re)), thread=data["ts"])
             return False
 
         except Exception as e:
             send_error(data["channel"],
                        "@{}: Problem encountered while parsing the response.\n"
-                       "Here are the details: {}".format(user_data["name"], str(e)))
+                       "Here are the details: {}".format(user_data["name"], str(e)), thread=data["ts"])
             return False
 
     def set_repo_topics(self, data, user_data, reponame, real_org, topics, **kwargs):
@@ -979,13 +990,13 @@ class GitHubPlugin(BotCommander):
         except requests.exceptions.RequestException as re:
             send_error(data["channel"],
                        "@{}: Problem encountered while setting topics to the repository.\n"
-                       "The response code from GitHub was: {}".format(user_data["name"], str(re)))
+                       "The response code from GitHub was: {}".format(user_data["name"], str(re)), thread=data["ts"])
             return False
 
         except Exception as e:
             send_error(data["channel"],
                        "@{}: Problem encountered while parsing the response.\n"
-                       "Here are the details: {}".format(user_data["name"], str(e)))
+                       "Here are the details: {}".format(user_data["name"], str(e)), thread=data["ts"])
             return False
 
     def get_repo_deploy_keys(self, data, user_data, reponame, real_org, **kwargs):
@@ -995,13 +1006,13 @@ class GitHubPlugin(BotCommander):
         except requests.exceptions.RequestException as re:
             send_error(data["channel"],
                        "@{}: Problem encountered while getting deploy keys from the repository.\n"
-                       "The response code from GitHub was: {}".format(user_data["name"], str(re)))
+                       "The response code from GitHub was: {}".format(user_data["name"], str(re)), thread=data["ts"])
             return False
 
         except Exception as e:
             send_error(data["channel"],
                        "@{}: Problem encountered while parsing the response.\n"
-                       "Here are the details: {}".format(user_data["name"], str(e)))
+                       "Here are the details: {}".format(user_data["name"], str(e)), thread=data["ts"])
 
     def get_repo_deploy_key_by_id(self, data, user_data, reponame, real_org, deploy_key_id, **kwargs):
         try:
@@ -1010,12 +1021,12 @@ class GitHubPlugin(BotCommander):
         except requests.exceptions.RequestException as re:
             send_error(data["channel"],
                        "@{}: Problem encountered while getting deploy key from the repository.\n"
-                       "The response code from GitHub was: {}".format(user_data["name"], str(re)))
+                       "The response code from GitHub was: {}".format(user_data["name"], str(re)), thread=data["ts"])
 
         except Exception as e:
             send_error(data["channel"],
                        "@{}: Problem encountered while parsing the response.\n"
-                       "Here are the details: {}".format(user_data["name"], str(e)))
+                       "Here are the details: {}".format(user_data["name"], str(e)), thread=data["ts"])
 
         return False
 
@@ -1026,13 +1037,13 @@ class GitHubPlugin(BotCommander):
         except requests.exceptions.RequestException as re:
             send_error(data["channel"],
                        "@{}: Problem encountered while adding deploy key to the repository.\n"
-                       "The response code from GitHub was: {}".format(user_data["name"], str(re)))
+                       "The response code from GitHub was: {}".format(user_data["name"], str(re)), thread=data["ts"])
             return False
 
         except Exception as e:
             send_error(data["channel"],
                        "@{}: Problem encountered while parsing the response.\n"
-                       "Here are the details: {}".format(user_data["name"], str(e)))
+                       "Here are the details: {}".format(user_data["name"], str(e)), thread=data["ts"])
 
     def delete_repo_deploy_key(self, data, user_data, reponame, real_org, key_id, **kwargs):
         try:
@@ -1041,12 +1052,12 @@ class GitHubPlugin(BotCommander):
         except requests.exceptions.RequestException as re:
             send_error(data["channel"],
                        "@{}: Problem encountered while deleting deploy key to the repository.\n"
-                       "The response code from GitHub was: {}".format(user_data["name"], str(re)))
+                       "The response code from GitHub was: {}".format(user_data["name"], str(re)), thread=data["ts"])
 
         except Exception as e:
             send_error(data["channel"],
                        "@{}: Problem encountered while parsing the response.\n"
-                       "Here are the details: {}".format(user_data["name"], str(e)))
+                       "Here are the details: {}".format(user_data["name"], str(e)), thread=data["ts"])
 
     def get_github_user(self, github_id):
         headers = {

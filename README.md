@@ -55,6 +55,9 @@ HubCommander also features the ability to:
 You can add additional commands by creating plugins. For example, you can create a plugin to invite users
 to your organizations.
 
+HubCommander also supports Slack ephemeral messages and threads.
+
+
 Installation Documentation
 -----------
 Please see the documentation [here](docs/installation.md) for details.

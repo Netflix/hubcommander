@@ -63,7 +63,7 @@ class DuoPlugin(BotAuthPlugin):
 
         if not result:
             send_error(data["channel"], "💀 @{}: Your Duo request was rejected. Aborting..."
-                       .format(user_data["name"]), markdown=True)
+                       .format(user_data["name"]), markdown=True, thread=data["ts"])
             return False
 
         # All Good:

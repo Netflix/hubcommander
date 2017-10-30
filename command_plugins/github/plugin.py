@@ -418,10 +418,12 @@ class GitHubPlugin(BotCommander):
             result = self.check_gh_for_existing_repo(repo, org)
 
             if result:
-                send_error(data["channel"],
-                           "@{}: This repository already exists in {}!".format(user_data["name"], org),
-                           thread=data["ts"])
-                return
+                # Check if the repo was renamed:
+                if "{}/{}".format(org, repo) == result["full_name"]:
+                    send_error(data["channel"],
+                               "@{}: This repository already exists in {}!".format(user_data["name"], org),
+                               thread=data["ts"])
+                    return
 
         except Exception as e:
             send_error(data["channel"],

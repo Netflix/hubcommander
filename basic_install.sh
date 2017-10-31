@@ -39,11 +39,8 @@ if [ $? -ne 0 ]; then
     exit -1
 fi
 cd ..
-
-
 RTM_VERSION="0.4.0"
 RTM_PATH="python-rtmbot-${RTM_VERSION}"
-
 echo "Installing HubCommander and all dependencies..."
 
 # Fetch the python-rtmbot in the parent directory of this one:

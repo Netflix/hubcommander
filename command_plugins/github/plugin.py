@@ -48,6 +48,14 @@ class GitHubPlugin(BotCommander):
                 "permitted_permissions": ["push", "pull"],  # To grant admin, add this to the config for
                 "enabled": True  # this command in the config.py.
             },
+            "!SetRepoPermissions": {
+                "command": "!SetRepoPermissions",
+                "func": self.add_team_To_repo,
+                "user_data_required": True,
+                "help": "Adds a team to a specific repository in a specific GitHub organization.",
+                "permitted_permissions": ["push", "pull"],  # To grant admin, add this to the config for
+                "enabled": True  # this command in the config.py.
+            },
             "!SetDescription": {
                 "command": "!SetDescription",
                 "func": self.set_description_command,
@@ -318,6 +326,63 @@ class GitHubPlugin(BotCommander):
         send_success(data["channel"],
                      "@{}: The GitHub user: `{}` has been added as an outside collaborator with `{}` "
                      "permissions to {}/{}.".format(user_data["name"], collab, permission,
+                                                    org, repo),
+                     markdown=True, thread=data["ts"])
+
+    @hubcommander_command(
+        name="!SetRepoPermissions",
+        usage="!SetRepoPermissions <Team> <OrgWithRepo> <Repo> <Permission>",
+        description="This will add an outside collaborator to a repository with the given permission.",
+        required=[
+            dict(name="team", properties=dict(type=str, help="The team's GitHub ID.")),
+            dict(name="org", properties=dict(type=str, help="The organization that contains the repo."),
+                 validation_func=lookup_real_org, validation_func_kwargs={}),
+            dict(name="repo", properties=dict(type=str, help="The repository to add the outside collaborator to."),
+                 validation_func=extract_repo_name, validation_func_kwargs={}),
+            dict(name="permission", properties=dict(type=str.lower, help="The permission to grant, must be one "
+                                                                         "of: `{values}`"),
+                 choices="permitted_permissions")
+        ],
+        optional=[]
+    )
+    @auth()
+    @repo_must_exist()
+    def add_team_to_repo(self, data, user_data, team, org, repo, permission):
+        """
+        Adds a team to a repository with a specified permission.
+
+        Command is as follows: !SetRepoPermissions <Team> <OrgWithRepo> <Repo> <Permission>
+        :param permission:
+        :param repo:
+        :param org:
+        :param teamid:
+        :param user_data:
+        :param data:
+        :return:
+        """
+        # Output that we are doing work:
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]), thread=data["ts"])
+
+        # Grant access:
+        try:
+            self.set_repo_permissions(repo, org, team, permission)
+
+        except ValueError as ve:
+            send_error(data["channel"],
+                       "@{}: Problem encountered adding the team.\n"
+                       "The response code from GitHub was: {}".format(user_data["name"], str(ve)), thread=data["ts"])
+            return
+
+        except Exception as e:
+            send_error(data["channel"],
+                       "@{}: Problem encountered adding the team.\n"
+                       "Here are the details: {}".format(user_data["name"], str(e)), thread=data["ts"])
+            return
+
+        # Done:
+        send_success(data["channel"],
+                     "@{}: The GitHub team: `{}` has been added to the repo with `{}` "
+                     "permissions to {}/{}.".format(user_data["name"], team, permission,
                                                     org, repo),
                      markdown=True, thread=data["ts"])
 

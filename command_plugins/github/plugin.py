@@ -50,7 +50,7 @@ class GitHubPlugin(BotCommander):
             },
             "!SetRepoPermissions": {
                 "command": "!SetRepoPermissions",
-                "func": self.add_team_To_repo,
+                "func": self.add_team_to_repo,
                 "user_data_required": True,
                 "help": "Adds a team to a specific repository in a specific GitHub organization.",
                 "permitted_permissions": ["push", "pull"],  # To grant admin, add this to the config for
@@ -363,9 +363,12 @@ class GitHubPlugin(BotCommander):
         # Output that we are doing work:
         send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]), thread=data["ts"])
 
+        # Check if team exists, if it does return the id
+        team_id = self.find_team_id_by_name(org, team)
+
         # Grant access:
         try:
-            self.set_repo_permissions(repo, org, team, permission)
+            self.set_repo_permissions(repo, org, team_id, permission)
 
         except ValueError as ve:
             send_error(data["channel"],

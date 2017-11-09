@@ -48,11 +48,11 @@ class GitHubPlugin(BotCommander):
                 "permitted_permissions": ["push", "pull"],  # To grant admin, add this to the config for
                 "enabled": True  # this command in the config.py.
             },
-            "!SetRepoPermissions": {
-                "command": "!SetRepoPermissions",
-                "func": self.add_team_to_repo,
+            "!SetRepoTeamPermissions": {
+                "command": "!SetRepoTeamPermissions",
+                "func": self.set_team_permissions,
                 "user_data_required": True,
-                "help": "Adds a team to a specific repository in a specific GitHub organization.",
+                "help": "Sets team permissions to a specific repository in a specific GitHub organization.",
                 "permitted_permissions": ["push", "pull"],  # To grant admin, add this to the config for
                 "enabled": True  # this command in the config.py.
             },
@@ -330,14 +330,14 @@ class GitHubPlugin(BotCommander):
                      markdown=True, thread=data["ts"])
 
     @hubcommander_command(
-        name="!SetRepoPermissions",
-        usage="!SetRepoPermissions <Team> <OrgWithRepo> <Repo> <Permission>",
-        description="This will add an outside collaborator to a repository with the given permission.",
+        name="!SetRepoTeamPermissions",
+        usage="!SetRepoTeamPermissions <Team> <OrgWithRepo> <Repo> <Permission>",
+        description="This will set team permissions on a repository .",
         required=[
-            dict(name="team", properties=dict(type=str, help="The team's GitHub ID.")),
+            dict(name="team", properties=dict(type=str, help="The team's name.")),
             dict(name="org", properties=dict(type=str, help="The organization that contains the repo."),
                  validation_func=lookup_real_org, validation_func_kwargs={}),
-            dict(name="repo", properties=dict(type=str, help="The repository to add the outside collaborator to."),
+            dict(name="repo", properties=dict(type=str, help="The repository to add the team to."),
                  validation_func=extract_repo_name, validation_func_kwargs={}),
             dict(name="permission", properties=dict(type=str.lower, help="The permission to grant, must be one "
                                                                          "of: `{values}`"),
@@ -347,7 +347,7 @@ class GitHubPlugin(BotCommander):
     )
     @auth()
     @repo_must_exist()
-    def add_team_to_repo(self, data, user_data, team, org, repo, permission):
+    def set_team_permissions(self, data, user_data, team, org, repo, permission):
         """
         Adds a team to a repository with a specified permission.
 
@@ -355,7 +355,7 @@ class GitHubPlugin(BotCommander):
         :param permission:
         :param repo:
         :param org:
-        :param teamid:
+        :param team:
         :param user_data:
         :param data:
         :return:

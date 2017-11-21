@@ -367,10 +367,6 @@ class GitHubPlugin(BotCommander):
         # Check if team exists, if it does return the id
         team_id = self.find_team_id_by_name(org, team)
 
-        if not team_id:
-            send_error(data["channel"], "The GitHub team does not exist.", thread=data["ts"])
-            return
-
         # Grant access:
         try:
             self.set_repo_permissions(repo, org, team_id, permission)
@@ -411,6 +407,7 @@ class GitHubPlugin(BotCommander):
     )
     @auth()
     @github_user_exists("user_id")
+    @team_must_exist()
     def add_user_to_team_command(self, data, user_data, user_id, org, team, role):
         """
         Adds a GitHub user to a team with a specified role.
@@ -429,10 +426,6 @@ class GitHubPlugin(BotCommander):
 
         # Check if team exists, if it does return the id
         team_id = self.find_team_id_by_name(org, team)
-
-        if not team_id:
-            send_error(data["channel"], "The GitHub team does not exist.", thread=data["ts"])
-            return
 
         # Do it:
         try:

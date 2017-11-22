@@ -50,7 +50,7 @@ class GitHubPlugin(BotCommander):
             },
             "!SetRepoPermissions": {
                 "command": "!SetRepoPermissions",
-                "func": self.set_team_permissions,
+                "func": self.set_repo_permissions_command,
                 "user_data_required": True,
                 "help": "Sets team permissions to a specific repository in a specific GitHub organization.",
                 "permitted_permissions": ["push", "pull"],  # To grant admin, add this to the config for
@@ -348,7 +348,7 @@ class GitHubPlugin(BotCommander):
     @auth()
     @repo_must_exist()
     @team_must_exist()
-    def set_team_permissions(self, data, user_data, team, org, repo, permission):
+    def set_repo_permissions_command(self, data, user_data, team, org, repo, permission, team_id=None):
         """
         Adds a team to a repository with a specified permission.
 
@@ -363,9 +363,6 @@ class GitHubPlugin(BotCommander):
         """
         # Output that we are doing work:
         send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]), thread=data["ts"])
-
-        # Check if team exists, if it does return the id
-        team_id = self.find_team_id_by_name(org, team)
 
         # Grant access:
         try:
@@ -408,7 +405,7 @@ class GitHubPlugin(BotCommander):
     @auth()
     @github_user_exists("user_id")
     @team_must_exist()
-    def add_user_to_team_command(self, data, user_data, user_id, org, team, role):
+    def add_user_to_team_command(self, data, user_data, user_id, org, team, role, team_id=None):
         """
         Adds a GitHub user to a team with a specified role.
 
@@ -423,9 +420,6 @@ class GitHubPlugin(BotCommander):
         """
         # Output that we are doing work:
         send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]), thread=data["ts"])
-
-        # Check if team exists, if it does return the id
-        team_id = self.find_team_id_by_name(org, team)
 
         # Do it:
         try:

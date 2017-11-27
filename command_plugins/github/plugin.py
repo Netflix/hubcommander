@@ -15,10 +15,11 @@ from tabulate import tabulate
 from hubcommander.bot_components.bot_classes import BotCommander
 from hubcommander.bot_components.decorators import hubcommander_command, auth
 from hubcommander.bot_components.slack_comm import send_info, send_success, send_error, send_raw
-from hubcommander.bot_components.parse_functions import extract_repo_name, parse_toggles
+from hubcommander.bot_components.parse_functions import extract_repo_name, parse_toggles, extract_multiple_repo_names
 from hubcommander.command_plugins.github.config import GITHUB_URL, GITHUB_VERSION, ORGS, USER_COMMAND_DICT
 from hubcommander.command_plugins.github.parse_functions import lookup_real_org, validate_homepage
-from hubcommander.command_plugins.github.decorators import repo_must_exist, github_user_exists, branch_must_exist, team_must_exist
+from hubcommander.command_plugins.github.decorators import repo_must_exist, github_user_exists, branch_must_exist, \
+    team_must_exist
 
 
 class GitHubPlugin(BotCommander):
@@ -273,14 +274,15 @@ class GitHubPlugin(BotCommander):
 
     @hubcommander_command(
         name="!AddCollab",
-        usage="!AddCollab <OutsideCollabId> <OrgWithRepo> <Repo> <Permission>",
+        usage="!AddCollab <OutsideCollabId> <OrgWithRepo> <Repos(Comma separated if more than 1)> <Permission>",
         description="This will add an outside collaborator to a repository with the given permission.",
         required=[
             dict(name="collab", properties=dict(type=str, help="The outside collaborator's GitHub ID.")),
             dict(name="org", properties=dict(type=str, help="The organization that contains the repo."),
                  validation_func=lookup_real_org, validation_func_kwargs={}),
-            dict(name="repo", properties=dict(type=str, help="The repository to add the outside collaborator to."),
-                 validation_func=extract_repo_name, validation_func_kwargs={}),
+            dict(name="repos", properties=dict(type=str, help="A comma separated list (or not if just 1) of repos to "
+                                                              "add the collaborator to."),
+                 validation_func=extract_multiple_repo_names, validation_func_kwargs={}),
             dict(name="permission", properties=dict(type=str.lower, help="The permission to grant, must be one "
                                                                          "of: `{values}`"),
                  choices="permitted_permissions"),
@@ -290,9 +292,9 @@ class GitHubPlugin(BotCommander):
     @auth()
     @repo_must_exist()
     @github_user_exists("collab")
-    def add_outside_collab_command(self, data, user_data, collab, org, repo, permission):
+    def add_outside_collab_command(self, data, user_data, collab, org, repos, permission):
         """
-        Adds an outside collaborator a repository with a specified permission.
+        Adds an outside collaborator to repository (or multiple repos) with a specified permission.
 
         Command is as follows: !addcollab <outside_collab_id> <organization> <repo> <permission>
         :param permission:
@@ -308,7 +310,8 @@ class GitHubPlugin(BotCommander):
 
         # Grant access:
         try:
-            self.add_outside_collab_to_repo(collab, repo, org, permission)
+            for r in repos:
+                self.add_outside_collab_to_repo(collab, r, org, permission)
 
         except ValueError as ve:
             send_error(data["channel"],
@@ -325,8 +328,8 @@ class GitHubPlugin(BotCommander):
         # Done:
         send_success(data["channel"],
                      "@{}: The GitHub user: `{}` has been added as an outside collaborator with `{}` "
-                     "permissions to {}/{}.".format(user_data["name"], collab, permission,
-                                                    org, repo),
+                     "permissions to {} in {}.".format(user_data["name"], collab, permission,
+                                                       ", ".join(repos), org),
                      markdown=True, thread=data["ts"])
 
     @hubcommander_command(
@@ -980,7 +983,7 @@ class GitHubPlugin(BotCommander):
 
             if not result:
                 send_error(data["channel"],
-                           "@{}: This repository does not exist in {}.".format(user_data["name"], real_org),
+                           "@{}: The repository {}/{} does not exist.".format(user_data["name"], real_org, reponame),
                            thread=data["ts"])
                 return False
 

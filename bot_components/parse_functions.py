@@ -121,6 +121,24 @@ def extract_repo_name(plugin_obj, reponame, **kwargs):
     return split_repo.replace(">", "")
 
 
+def extract_multiple_repo_names(plugin_obj, repos, **kwargs):
+    """
+    Does what the above does, but does it for a comma separated list of repos.
+    :param plugin_obj:
+    :param repos:
+    :param kwargs:
+    :return:
+    """
+    repo_list = repos.split(",")
+
+    parsed_repos = []
+
+    for repo in repo_list:
+        parsed_repos.append(extract_repo_name(plugin_obj, repo, **kwargs))
+
+    return parsed_repos
+
+
 def parse_toggles(plugin_obj, toggle, toggle_type="toggle", **kwargs):
     """
     Parses typical toggle values, like off, on, enabled, disabled, true, false, etc.

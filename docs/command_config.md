@@ -44,3 +44,12 @@ By default, authentication is disabled. An example of enabling authentication ca
 [`config.py`](https://github.com/Netflix/hubcommander/blob/master/github/config.py) file.
 
 _For more details on authentication plugins, please read the [authentication plugin documentation](authentication.md)._
+
+
+### Hidden Commands
+
+If you ever retire a command, you can make it hidden from the `!Help` output. You can modify the command so that it
+outputs information redirecting the user to the new and supported command to utilize.
+
+To do this, in the command configuration, simply remove the `help` text. This command can stil be
+executed, but won't appear as a command.

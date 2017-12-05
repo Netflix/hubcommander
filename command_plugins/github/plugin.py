@@ -1338,23 +1338,29 @@ class GitHubPlugin(BotCommander):
         # See: https://developer.github.com/v3/repos/branches/#enabling-and-disabling-branch-protection
         headers = {
             'Authorization': 'token {}'.format(self.token),
-            'Accept': "application/vnd.github.loki-preview+json"
         }
-        api_part = 'repos/{}/{}/branches/{}'.format(org, repo, branch)
-
-        data = {
-            "protection": {
-                "enabled": enabled
+        api_part = 'repos/{}/{}/branches/{}/protection'.format(org, repo, branch)
+        if enabled:
+            data = {
+                "required_status_checks": None,
+                "enforce_admins": None,
+                "required_pull_request_reviews": None,
+                "restrictions": None
             }
-        }
+            response = requests.put('{}{}'.format(GITHUB_URL, api_part), json=data, headers=headers, timeout=10)
 
-        response = requests.patch('{}{}'.format(GITHUB_URL, api_part), data=json.dumps(data), headers=headers,
-                                  timeout=10)
+            if response.status_code != 200:
+                message = 'An error was encountered communicating with GitHub: Status Code: {}' \
+                    .format(response.status_code)
+                raise requests.exceptions.RequestException(message)
 
-        if response.status_code != 200:
-            message = 'An error was encountered communicating with GitHub: Status Code: {}' \
-                .format(response.status_code)
-            raise requests.exceptions.RequestException(message)
+        else:
+            response = requests.delete('{}{}'.format(GITHUB_URL, api_part), headers=headers, timeout=10)
+
+            if response.status_code != 204:
+                message = 'An error was encountered communicating with GitHub: Status Code: {}' \
+                    .format(response.status_code)
+                raise requests.exceptions.RequestException(message)
 
     def check_if_user_is_member_of_org(self, github_id, org):
         # Check if the user exists first:

@@ -1,7 +1,7 @@
 FROM ubuntu:xenial
 
 # Mostly Mike Grima: mgrima@netflix.com
-MAINTAINER NetflixOSS <netflixoss@netflix.com>
+LABEL maintainer="netflixoss@netflix.com"
 
 RUN \
   # Install Python:

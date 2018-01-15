@@ -58,18 +58,18 @@ class DuoPlugin(BotAuthPlugin):
         except InvalidDuoResponseError as idre:
             send_error(data["channel"], "💀 @{}: There was a problem communicating with Duo. Got this status: {}. "
                                         "Aborting..."
-                       .format(user_data["name"], str(idre)), markdown=True)
+                       .format(user_data["name"], str(idre)), thread=data["ts"], markdown=True)
             return False
 
         except CantDuoUserError as _:
             send_error(data["channel"], "💀 @{}: I can't Duo authenticate you. Please consult with your identity team."
                                         " Aborting..."
-                       .format(user_data["name"]), markdown=True)
+                       .format(user_data["name"]), thread=data["ts"], markdown=True)
             return False
 
         except Exception as e:
             send_error(data["channel"], "💀 @{}: I encountered some issue with Duo... Here are the details: ```{}```"
-                       .format(user_data["name"], str(e)), markdown=True)
+                       .format(user_data["name"], str(e)), thread=data["ts"], markdown=True)
             return False
 
         if not result:

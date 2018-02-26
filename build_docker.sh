@@ -55,5 +55,12 @@ echo "[-->] Now building the Docker image..."
 # Build that Docker image...
 docker build  -t netflixoss/hubcommander:${BUILD_TAG} --rm=true . --build-arg RTM_VERSION=${RTM_VERSION}
 
+cmd_st="$?"
+if [ $cmd_st -gt 0 ]
+then
+  echo "Error building image. Exiting."
+  exit $cmd_st
+fi
+
 echo
 echo "DONE!"

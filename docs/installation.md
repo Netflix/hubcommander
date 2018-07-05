@@ -83,6 +83,8 @@ enable the plugins to make authenticated calls to their respective services. You
 required for plugins to work.
 
 1. Contact your Slack administrator to obtain a Slack token that can be used for bots.
+    - More specifically, you will need to create a Slack app, and give the app the permissions to be a bot.
+    - You will need to use the bot token for Oauth in order to get `rtm:stream` permissions.
 2. If you haven't already, create a GitHub bot account, and invite it to all the organizations that 
    you manage with the `owner` role. Also, please configure this account with a strong password
    and 2FA! (Don't forget to back up those recovery codes into a safe place!)
@@ -94,7 +96,7 @@ configuration that the plugin supports.
 
 For the GitHub plugin, you are required to define a Python `dict` with the organizations that you manage. An example
 of what this `dict` looks like can be found in the sample
-[`github/config.py`](https://github.com/Netflix/hubcommander/blob/master/github/config.py) file.
+[`command_plugins/github/config.py`](https://github.com/Netflix/hubcommander/blob/develop/command_plugins/github/config.py) file.
 
 At a minimum, you need to specify the real name of the organization, a list of aliases for the orgs (or an empty list),
 whether the organization can only create public repos (via the `public_only` boolean), as well as 

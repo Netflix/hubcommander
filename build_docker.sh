@@ -26,12 +26,12 @@ if [ -z ${BUILD_TAG} ]; then
   BUILD_TAG="latest"
 fi
 
-# If this is running in Travis, AND the Python version IS NOT 3.5, then don't build
+# If this is running in Travis, AND the Python version IS NOT 3.6, then don't build
 # the Docker image:
 if [ $TRAVIS ]; then
     PYTHON_VERSION=$( python --version )
-    if [[ $PYTHON_VERSION != *"3.5"* ]]; then
-        echo "This only builds Docker images in the Python 3.5 Travis job"
+    if [[ $PYTHON_VERSION != *"3.6"* ]]; then
+        echo "This only builds Docker images in the Python 3.6 Travis job"
         exit 0
     fi
 fi
@@ -54,6 +54,13 @@ echo "[-->] Now building the Docker image..."
 
 # Build that Docker image...
 docker build  -t netflixoss/hubcommander:${BUILD_TAG} --rm=true . --build-arg RTM_VERSION=${RTM_VERSION}
+
+cmd_st="$?"
+if [ $cmd_st -gt 0 ]
+then
+  echo "Error building image. Exiting."
+  exit $cmd_st
+fi
 
 echo
 echo "DONE!"

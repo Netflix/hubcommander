@@ -25,10 +25,19 @@ An example for how this is configured can be found in
 Enabling Duo
 ------------
 Duo is disabled by default. To enable Duo, you will need the following information:
+   1. The domain name that is Duo protected
+   1. The Duo Host
+   1. The "IKEY"
+   1. The "SKEY"
 
-   - `DUO-HOST`: Your administrator needs to provide you with this
-   - `DUO-IKEY`: The `IKEY`, provided to you by your administrator
-   - `DUO-SKEY`: The `SKEY`, provided to you by your administrator
+HubCommander supports multiple Duo domains. For this to work, you will need the information above
+for the given domain. Additionally, the secrets dictionary needs to be updated such that it has a key that starts
+with `DUO_`.  This key needs a comma-separated list of the domain, duo host, `ikey`, and `skey`.  It needs to look like:
+
+    "DUO_DOMAIN_ONE": "domainone.com,YOURHOST.duosecurity.com,THEIKEY,THESKEY"
+    "DUO_DOMAIN_TWO": "domaintwo.com,YOUROTHERHOST.duosecurity.com,THEOTHERIKEY,THEOTHERSKEY"
+
+The email address of the Slack user will determine which domain gets used.
 
 With the above information, you need to modify the secrets `dict` that is decrypted by the application
 on startup.

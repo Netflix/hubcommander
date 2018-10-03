@@ -108,7 +108,12 @@ def setup(slackclient):
             if cmd["enabled"]:
                 print("\t[+] Adding command: \'{cmd}\'".format(cmd=cmd["command"]))
                 COMMANDS[cmd["command"].lower()] = cmd
-                HELP_TEXT.append("`{cmd}` - {help}\n".format(cmd=cmd["command"], help=cmd["help"]))
+
+                # Hidden commands: don't show on the help:
+                if cmd.get("help"):
+                    HELP_TEXT.append("`{cmd}` - {help}\n".format(cmd=cmd["command"], help=cmd["help"]))
+                else:
+                    print("\t[!] Not adding help text for hidden command: {}".format(cmd["command"]))
             else:
                 print("\t[/] Skipping disabled command: \'{cmd}\'".format(cmd=cmd["command"]))
         print("[+] Successfully enabled command plugin \"{}\"".format(name))

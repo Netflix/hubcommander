@@ -30,35 +30,46 @@ class DuoPlugin(BotAuthPlugin):
     def __init__(self):
         super().__init__()
 
-        self.client = None
+        self.clients = {}
 
     def setup(self, secrets, **kwargs):
-        if not secrets.get("DUO_IKEY") or not secrets.get("DUO_SKEY") or not secrets.get("DUO_HOST"):
+        for variable, secret in secrets.items():
+            if "DUO_" in variable:
+                domain, host, ikey, skey = secret.split(",")
+                self.clients[domain] = Client(ikey, skey, host)
+
+        if not len(self.clients):
             raise NoSecretsProvidedError("Must provide secrets to enable authentication.")
 
-        self.client = Client(secrets["DUO_IKEY"], secrets["DUO_SKEY"], secrets["DUO_HOST"])
-
     def authenticate(self, data, user_data, **kwargs):
+        # Which domain does this user belong to?
+        domain = user_data["profile"]["email"].split("@")[1]
+        if not self.clients.get(domain):
+            send_error(data["channel"], "💀 @{}: Duo in this bot is not configured for the domain: `{}`. It needs "
+                                        "to be configured for you to run this command."
+                       .format(user_data["name"], domain), markdown=True, thread=data["ts"])
+            return False
+
         send_info(data["channel"], "🎟 @{}: Sending a Duo notification to your device. You must approve!"
                   .format(user_data["name"]), markdown=True, ephemeral_user=user_data["id"])
 
         try:
-            result = self._perform_auth(user_data)
+            result = self._perform_auth(user_data, self.clients[domain])
         except InvalidDuoResponseError as idre:
             send_error(data["channel"], "💀 @{}: There was a problem communicating with Duo. Got this status: {}. "
                                         "Aborting..."
-                       .format(user_data["name"], str(idre)), markdown=True)
+                       .format(user_data["name"], str(idre)), thread=data["ts"], markdown=True)
             return False
 
         except CantDuoUserError as _:
             send_error(data["channel"], "💀 @{}: I can't Duo authenticate you. Please consult with your identity team."
                                         " Aborting..."
-                       .format(user_data["name"]), markdown=True)
+                       .format(user_data["name"]), thread=data["ts"], markdown=True)
             return False
 
         except Exception as e:
             send_error(data["channel"], "💀 @{}: I encountered some issue with Duo... Here are the details: ```{}```"
-                       .format(user_data["name"], str(e)), markdown=True)
+                       .format(user_data["name"], str(e)), thread=data["ts"], markdown=True)
             return False
 
         if not result:
@@ -71,14 +82,14 @@ class DuoPlugin(BotAuthPlugin):
                      .format(user_data["name"]), markdown=True, ephemeral_user=user_data["id"])
         return True
 
-    def _perform_auth(self, user_data):
+    def _perform_auth(self, user_data, client):
         # Push to devices:
         duo_params = {
             "username": user_data["profile"]["email"],
             "factor": "push",
             "device": "auto"
         }
-        response, data = self.client.api_call("POST", "/auth/v2/auth", duo_params)
+        response, data = client.api_call("POST", "/auth/v2/auth", duo_params)
         result = json.loads(data.decode("utf-8"))
 
         if response.status != 200:

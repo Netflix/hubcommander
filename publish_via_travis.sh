@@ -20,12 +20,12 @@
 #
 ################################################################################
 
-# If this is running in Travis, AND the Python version IS NOT 3.5, then don't build
+# If this is running in Travis, AND the Python version IS NOT 3.6, then don't build
 # the Docker image:
 if [ $TRAVIS ]; then
     PYTHON_VERSION=$( python --version )
-    if [[ $PYTHON_VERSION != *"3.5"* ]]; then
-        echo "This only publishes Docker images in the Python 3.5 Travis job"
+    if [[ $PYTHON_VERSION != *"3.6"* ]]; then
+        echo "This only publishes Docker images in the Python 3.6 Travis job"
         exit 0
     fi
 else

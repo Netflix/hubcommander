@@ -53,6 +53,16 @@ def test_extract_repo_name():
         assert extract_repo_name(None, uri) == repo
 
 
+def test_extract_multiple_repo_names():
+    from hubcommander.bot_components.parse_functions import extract_multiple_repo_names
+
+    test_repos = ["www.foo.com", "foo", "HubCommander", "netflix.github.io"]
+    test_repo_strings = "<http://www.foo.com|www.foo.com>,foo,HubCommander," \
+                        "<https://netflix.github.io|netflix.github.io>"
+
+    assert extract_multiple_repo_names(None, test_repo_strings) == test_repos
+
+
 def test_parse_toggles():
     from hubcommander.bot_components.parse_functions import parse_toggles, TOGGLE_ON_VALUES, \
         TOGGLE_OFF_VALUES, ParseException

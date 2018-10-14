@@ -19,7 +19,7 @@ administrative or `owner` privileges to your GitHub organization members.
 |Travis CI|[![Build Status](https://travis-ci.org/Netflix/hubcommander.svg?branch=master)](https://travis-ci.org/Netflix/hubcommander)|[![Build Status](https://travis-ci.org/Netflix/hubcommander.svg?branch=develop)](https://travis-ci.org/Netflix/hubcommander)|
 
 
-How it works?
+How does it work?
 -------------
 HubCommander is based on [slackhq/python-rtmbot](https://github.com/slackhq/python-rtmbot)
 (currently, dependent on release [0.4.0](https://github.com/slackhq/python-rtmbot/releases/tag/0.4.0))

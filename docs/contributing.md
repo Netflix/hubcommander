@@ -16,7 +16,7 @@ Development Setup
 HubCommander is a Python 3 application, and as such, having a good Python 3 environment up and running is essential.
 
 Google has very good documentation on setting up a Python environment [here](https://cloud.google.com/python/setup). 
-(You don't need to set up the Google Cloud dependencies -- unless you want to do really cool GCP chatopcy things with HubCommander.)
+(You don't need to set up the Google Cloud dependencies -- unless you want to do really cool GCP chatops things with HubCommander.)
 
 You will also need to install `git`.  Some good guides on `git` can be found [here](https://git-scm.com/documentation).
 

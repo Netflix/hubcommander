@@ -17,7 +17,6 @@ before_script:
 
 script:
   - py.test --cov=tests tests/
-  - codeclimate-test-reporter --file .tests
   - ./build_docker.sh
   - ./publish_via_travis.sh
 

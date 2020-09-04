@@ -39,9 +39,7 @@ class DuoPlugin(BotAuthPlugin):
                 self.clients[domain] = Client(ikey, skey, host)
 
         if not len(self.clients):
-            for variable, secret in secrets.items():
-            if "DUO_" in variable:
-                domain, host, ikey, skey = secret.split(",")
+            raise NoSecretsProvidedError("Must provide secrets to enable authentication.")
 
     def authenticate(self, data, user_data, **kwargs):
         # Which domain does this user belong to?

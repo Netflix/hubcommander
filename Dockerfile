@@ -10,9 +10,9 @@ RUN \
   apt-get install python3 python3-venv nano curl -y
 
 # Install the Python RTM bot itself:
-ARG RTM_VERSION="0.4.0"
+ARG RTM_VERSION="0.4.1"
 ARG RTM_PATH="python-rtmbot-${RTM_VERSION}"
-RUN curl -L https://github.com/slackhq/python-rtmbot/archive/${RTM_VERSION}.tar.gz > /${RTM_PATH}.tar.gz && tar xvzf python-rtmbot-0.4.0.tar.gz
+RUN curl -L https://github.com/slackhq/python-rtmbot/archive/${RTM_VERSION}.tar.gz > /${RTM_PATH}.tar.gz && tar xvzf python-rtmbot-0.4.1.tar.gz
 
 
 # Add all the other stuff to the plugins:

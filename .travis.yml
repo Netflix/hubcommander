@@ -16,22 +16,23 @@ before_script:
   - ./cc-test-reporter before-build
 
 script:
-  - ./build_docker.sh
-  - ./publish_via_travis.sh
   - py.test --cov=tests tests/
-  - coverage json
-
+  - coverage help
+  - coverage xml
+  
 after_script:
   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
-  - ./cc-test-reporter format-coverage -t coverage.py
-  - ./cc-test-reporter upload-coverage
+  - ./cc-test-reporter format-coverage -t simplecov -o coverage/codeclimate.backend.json coverage/backend/.resultset.json # Format backend coverage
+  - ./cc-test-reporter format-coverage -t lcov -o coverage/codeclimate.frontend.json coverage/frontend/lcov.info  # Format frontend coverage
+  - ./cc-test-reporter sum-coverage coverage/codeclimate.*.json -p 2                  # Sum both coverage parts into coverage/codeclimate.json
+  - if [[ "$TRAVIS_TEST_RESULT" == 0 ]]; then ./cc-test-reporter upload-coverage --a199ef9c62ad2ca8c1f520bfe950eeeda67ed4ad08ece334514a0244a1da9ff2; fi  # Upload coverage/codeclimate.json
 
 services:
   - docker
 
 env:
   global:
-    - CC_TEST_REPORTER_ID="395e3b14e59599c44395c87bbc181c48880855b4adaf71d5f3c99a00365a7b9f"
+    - CC_TEST_REPORTER_ID=a199ef9c62ad2ca8c1f520bfe950eeeda67ed4ad08ece334514a0244a1da9ff2
     - CODECLIMATE_REPO_TOKEN=[token]
     - BUILD_TAG=$TRAVIS_TAG
     - secure: "baz4o5dPTHBnQ7lLq4uhSPwduSWkErr8v5d/TKJSTegzgh4TjIGLjdjwho07LjS76bDAnd96odTf5GQEm90oMh48vJowP1TzvDdzqkWRbr9j12SY78RMAKRA+v2ZuhA/ePpomFNcJ2R+3Cppezc5W3mXEMsKrkKSHGJL8TyjzJK/gT9OvojuZ4W/QLah7zXRhycihL+DQvHvwbGjzUbtVw4aqUA5R2ETlltAzyU7GCqEnjL4skMrXCoclJd6M8eCCLaZ4wjzWSOkwEcBMGLPUHtCs0+vOGf3oGeRugv2gaMYM70TUR4b6RrmZSkP3UjIA9niSKjySjaWQD7IWr681i39xI4ThQJicO+38C2c4sfQ6p4fTVkYOCOspH5RIC2jZCvLtTaJbl1+0I5eV+AMjmKcbeI4BN8NYl/NOzLtpWxkqaEz0DrtQIoHFD/b6xzsbqxBOkyNbzste2P9myaY3Xsfur8LntZFuT6SzbpV1DbLpoxWvfCcufsF+h9s4Wgd5ghS88TVBCfUcaTaz+g04XdaL+otfABPkLx9eDmGgLCpbGc2LG8qhM+lj1ub31BmroKv61eyQlRTcZeEL84lQ9aFYIjCgdKD14t2jjNkCdo1aVimN6rJjqbp0ju89HFYMDa861Hg6adZ2FNQ68ig4sCCLCZWKGIqFqaKZmL8uIQ="

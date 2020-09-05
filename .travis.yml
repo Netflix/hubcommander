@@ -17,16 +17,11 @@ before_script:
 
 script:
   - py.test --cov=tests tests/
-  - coverage help
   - coverage xml
   
 after_script:
   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
-  - ./cc-test-reporter format-coverage -t simplecov -o coverage/codeclimate.backend.json coverage/backend/.resultset.json # Format backend coverage
-  - ./cc-test-reporter format-coverage -t lcov -o coverage/codeclimate.frontend.json coverage/frontend/lcov.info  # Format frontend coverage
-  - ./cc-test-reporter sum-coverage coverage/codeclimate.*.json -p 2                  # Sum both coverage parts into coverage/codeclimate.json
-  - if [[ "$TRAVIS_TEST_RESULT" == 0 ]]; then ./cc-test-reporter upload-coverage --a199ef9c62ad2ca8c1f520bfe950eeeda67ed4ad08ece334514a0244a1da9ff2; fi  # Upload coverage/codeclimate.json
-
+  
 services:
   - docker
 

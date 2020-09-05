@@ -21,6 +21,13 @@ script:
   - coverage xml
   - ./build_docker.sh
 
+deploy:
+  # Build Docker container and push to Docker Hub
+  provider: script
+  script: bash deploy.sh
+  on:
+    branch: develop4
+    
 after_script:
   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
 

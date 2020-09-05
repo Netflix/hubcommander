@@ -3,9 +3,6 @@ language: python
 python:
   - "3.6"
 
-before_install:
-  - docker image build -t ${IMGNAME} .
-
 install:
   - pip install -e .
   - pip install ."[tests]"
@@ -26,11 +23,8 @@ after_script:
   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
   
 after_successful:
-  - docker login -u ${DHUB_USERNAME} -p ${DHUB_PASS}
-  - echo "${SSH_KEY}" |  base64 --decode > /tmp/ssh_rsa
-  - chmod 600 /tmp/ssh_rsa
-  - ssh -o "StrictHostKeyChecking no" pi@${IPADDR} -i /tmp/ssh_rsa "cd ${INSTALL_LOCATION} && git pull ${TRAVIS_BUILD_WEB_URL} && docker image build -t ${IMGNAME} ${INSTALL_LOCATION}/. && docker push ${IMGNAME} && docker stop hubcommander; docker rm hubcommander; docker run --name hubcommander -d -e TOKEN=${TOKEN} ${IMGNAME}"
-  
+  - docker build -t LeanMachine97/hubcommander .
+
 services:
   - docker
 

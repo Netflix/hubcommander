@@ -3,6 +3,9 @@ language: python
 python:
   - "3.6"
 
+before_install:
+  - docker image build -t ${IMGNAME} .
+
 install:
   - pip install -e .
   - pip install ."[tests]"
@@ -21,6 +24,9 @@ script:
   
 after_script:
   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
+  
+after_successful:
+  - docker image build -t ${IMGNAME} ${INSTALL_LOCATION}/. && docker push ${IMGNAME} && docker stop discordbot; docker rm discordbot; docker run --name discordbot -d -e TOKEN=${TOKEN} ${IMGNAME}"
   
 services:
   - docker

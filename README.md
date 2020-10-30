@@ -16,7 +16,7 @@ administrative or `owner` privileges to your GitHub organization members.
 
 | Service   | Master | Develop |
 |:-----------:|:--------:|:---------:|
-|Travis CI|[![Build Status](https://travis-ci.org/Netflix/hubcommander.svg?branch=master)](https://travis-ci.org/Netflix/hubcommander)|[![Build Status](https://travis-ci.org/Netflix/hubcommander.svg?branch=develop)](https://travis-ci.org/Netflix/hubcommander)|
+|Travis CI|[![Build Status](https://travis-ci.com/Netflix/hubcommander.svg?branch=master)](https://travis-ci.com/Netflix/hubcommander)|[![Build Status](https://travis-ci.com/Netflix/hubcommander.svg?branch=develop)](https://travis-ci.com/Netflix/hubcommander)|
 
 
 How does it work?

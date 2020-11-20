@@ -119,7 +119,7 @@ class TravisPlugin(BotCommander):
 
     @hubcommander_command(
         name="!EnableTravis",
-        usage="!EnableTravis <OrgWithRepo> <Repo>",
+        usage="!EnableTravis <OrgWithRepo> <Repo> [--public=true]",
         description="This will enable Travis CI on a GitHub repository.",
         required=[
             dict(name="org", properties=dict(type=str, help="The organization that contains the repo."),
@@ -127,14 +127,16 @@ class TravisPlugin(BotCommander):
             dict(name="repo", properties=dict(type=str, help="The repository to enable Travis CI on."),
                  validation_func=extract_repo_name, validation_func_kwargs={})
         ],
-        optional=[]
+        optional=[dict(name="--public",
+                       properties=dict(type=str, help="When set to true - attempts to enable Travis CI using the public travis-ci.org"))]
     )
     @auth()
-    def enable_travis_command(self, data, user_data, org, repo):
+    def enable_travis_command(self, data, user_data, org, repo, public):
         """
         Enables Travis CI on a repository within the organization.
 
-        Command is as follows: !enabletravis <organization> <repo>
+        Command is as follows: !enabletravis <organization> <repo> [--public=true]
+        :param public:
         :param repo:
         :param org:
         :param user_data:
@@ -162,7 +164,7 @@ class TravisPlugin(BotCommander):
                        "@{}: I encountered a problem:\n\n{}".format(user_data["name"], e), thread=data["ts"])
             return
 
-        which = "pro" if repo_result["private"] else "public"
+        which = "public" if (public and public.lower() == 'true') else "pro"
 
         try:
             # Sync with Travis CI so that it knows about the repo:

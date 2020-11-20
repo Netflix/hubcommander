@@ -1,14 +1,13 @@
 Travis CI Plugin
 =================
 
-The [Travis CI](https://travis-ci.org/) plugin features an `!EnableTravis` command which will enable Travis CI 
+The [Travis CI](https://travis-ci.com/) plugin features an `!EnableTravis` command which will enable Travis CI 
 on a given repository. By default, this plugin is disabled.
 
-This plugin makes an assumption that you have Travis CI Public (for public repos) and 
-Professional (for private repos) enabled for your GitHub organizations.
+This plugin makes an assumption that you have Travis CI enabled for your GitHub organizations.
 
-This plugin will automatically detect which Travis CI (Public vs. Pro) to use based on the public/private 
-visibility of a given GitHub repository.
+Since Travis CI Public (travis-ci.org) [is moving](https://blog.travis-ci.com/2018-05-02-open-source-projects-on-travis-ci-com-with-github-apps) to Travis CI Pro (travis-ci.com), 
+the plugin will default to using Travis CI Pro.
 
 How does it work?
 ----------------
@@ -26,11 +25,9 @@ then run the API command to enable Travis CI on the repo.
 
 Configuration
 -------------
-This plugin requires access to the Travis CI API version 3 
-([currently in closed BETA](https://developer.travis-ci.org/)). You must contact Travis CI's support 
-and request a GitHub ID to be added into the beta for access to the methods utilized by this plugin. 
+This plugin requires access to [Travis CI API version 3](https://developer.travis-ci.com/). 
 
-Once you are added into the closed beta, you will need to get your Travis CI tokens. These tokens
+You will need to get your Travis CI tokens. These tokens
 are _different_ for public and professional Travis CI.
 
 ### GitHub API Token for Travis

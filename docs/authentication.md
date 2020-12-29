@@ -1,6 +1,6 @@
 Authentication Plugins
 ===================
-HubCommander supports the ability to add authentication to the command flow. This is useful to safegurad
+HubCommander supports the ability to add authentication to the command flow. This is useful to safeguard
 specific commands, and additionally, add a speedbump to privileged commands.
 
 For organizations making use of Duo, a plugin is supplied that will prompt a user's device for approval

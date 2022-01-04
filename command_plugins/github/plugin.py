@@ -1230,6 +1230,17 @@ class GitHubPlugin(BotCommander):
         return True
 
     def add_outside_collab_to_repo(self, outside_collab_id, repo_name, real_org, permission):
+        # Make sure the user is not a member of any of the "validation" teams
+        # in an org; this prevents us from accidentally adding collaborators who
+        # are already given the permissions they need via a different mechanism.
+        if "collab_validation_teams" in ORGS[real_org]:
+            for team in ORGS[real_org]["collab_validation_teams"]:
+                if self.check_if_user_is_member_of_team(real_org, outside_collab_id, team):
+                    raise Exception(("User {} is already a member of the {} "
+                        "team in {}. You should not add them as an external "
+                        "collaborator as well. Consider using the !InviteMeTo command "
+                        "instead.").format(outside_collab_id, team, real_org))
+
         headers = {
             'Authorization': 'token {}'.format(self.token),
             'Accept': GITHUB_VERSION
@@ -1379,6 +1390,36 @@ class GitHubPlugin(BotCommander):
 
         # Per GitHub API, if 204, then already a member; if 404, then not a member:
         if response.status_code == 204:
+            return True
+
+        elif response.status_code != 404:
+            raise ValueError("GitHub Problem: Checking membership, status code: {}".format(response.status_code))
+
+        return False
+
+    def check_if_user_is_member_of_team(self, org, github_id, team_name):
+        """
+        This will connect to GitHub, and try to retrieve the membership status of a
+        single user for a team in a given org.
+        """
+
+        # Check if the user exists first:
+        user = self.get_github_user(github_id)
+
+        if not user:
+            return None
+
+
+        headers = {
+            'Authorization': 'token {}'.format(self.token),
+            'Accept': GITHUB_VERSION
+        }
+
+        # Retrieve a users membership details.
+        api_part = 'orgs/{}/teams/{}/memberships/{}'.format(org, team_name, github_id)
+        response = requests.get('{}{}'.format(GITHUB_URL, api_part), headers=headers, timeout=10)
+
+        if response.status_code == 200:
             return True
 
         elif response.status_code != 404:

@@ -1384,7 +1384,7 @@ class GitHubPlugin(BotCommander):
             'Authorization': 'token {}'.format(self.token),
             'Accept': GITHUB_VERSION
         }
-        api_part = 'teams/{}/repos/{}/{}'.format(team, org, repo_to_set)
+        api_part = 'orgs/{}/teams/{}/repos/{}/{}'.format(org, team, org, repo_to_set)
 
         data = {
             "permission": permission

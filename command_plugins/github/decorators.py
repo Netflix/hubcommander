@@ -35,8 +35,8 @@ def team_must_exist(org_arg="org", team_arg="team"):
     def command_decorator(func):
         def decorated_command(github_plugin, data, user_data, *args, **kwargs):
             # Check if the specified GitHub team exists:
-            kwargs['team_id'] = github_plugin.find_team_id_by_name(kwargs[org_arg], kwargs[team_arg])
-            if not kwargs.get("team_id"):
+            team_id = github_plugin.find_team_id_by_name(kwargs[org_arg], kwargs[team_arg])
+            if not team_id:
                 send_error(data["channel"], "@{}: The GitHub team: {} does not exist.".format(user_data["name"],
                                                                                               kwargs[team_arg]),
                            thread=data["ts"])

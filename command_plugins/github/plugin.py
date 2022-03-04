@@ -414,7 +414,7 @@ class GitHubPlugin(BotCommander):
     @auth()
     @repo_must_exist()
     @team_must_exist()
-    def set_repo_permissions_command(self, data, user_data, team, org, repo, permission, team_id=None):
+    def set_repo_permissions_command(self, data, user_data, team, org, repo, permission):
         """
         Adds a team to a repository with a specified permission.
 
@@ -432,7 +432,7 @@ class GitHubPlugin(BotCommander):
 
         # Grant access:
         try:
-            self.set_repo_permissions(repo, org, team_id, permission)
+            self.set_repo_permissions(repo, org, team, permission)
 
         except ValueError as ve:
             send_error(data["channel"],
@@ -471,7 +471,7 @@ class GitHubPlugin(BotCommander):
     @auth()
     @github_user_exists("user_id")
     @team_must_exist()
-    def add_user_to_team_command(self, data, user_data, user_id, org, team, role, team_id=None):
+    def add_user_to_team_command(self, data, user_data, user_id, org, team, role):
         """
         Adds a GitHub user to a team with a specified role.
 
@@ -489,7 +489,7 @@ class GitHubPlugin(BotCommander):
 
         # Do it:
         try:
-            self.invite_user_to_gh_org_team(user_id, team_id, role)
+            self.invite_user_to_gh_org_team(org, team, user_id, role)
 
         except ValueError as ve:
             send_error(data["channel"],
@@ -1506,7 +1506,7 @@ class GitHubPlugin(BotCommander):
 
         return False
 
-    def invite_user_to_gh_org_team(self, github_id, team_id, role):
+    def invite_user_to_gh_org_team(self, org, team, username, role):
         headers = {
             'Authorization': 'token {}'.format(self.token),
             'Accept': GITHUB_VERSION
@@ -1515,7 +1515,7 @@ class GitHubPlugin(BotCommander):
         data = {"role": role}
 
         # Add the GitHub user to the team:
-        api_part = 'teams/{}/memberships/{}'.format(team_id, github_id)
+        api_part = 'orgs/{}/teams/{}/memberships/{}'.format(org, team, username)
         response = requests.put('{}{}'.format(GITHUB_URL, api_part), data=json.dumps(data), headers=headers, timeout=10)
 
         if response.status_code != 200:

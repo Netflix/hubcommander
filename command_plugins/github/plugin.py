@@ -572,7 +572,7 @@ class GitHubPlugin(BotCommander):
         # Grant the proper teams access to the repository:
         try:
             for perm_dict in ORGS[org]["new_repo_teams"]:
-                self.set_repo_permissions(repo, org, perm_dict["id"], perm_dict["perm"])
+                self.set_repo_permissions(repo, org, perm_dict["name"], perm_dict["perm"])
 
         except Exception as e:
             send_error(data["channel"],

@@ -13,7 +13,7 @@ ORGS = {
                 "perm": "push",         # The permission, either "push", "pull", or "admin"...
                 "name": "TeamName"      # The name of the team here...
             }
-        ]
+        ],
         "collab_validation_teams": [
             # If users are members of any of the teams in this list, they will
             # not be added as outside collaborators

@@ -6,19 +6,39 @@ python:
 install:
   - pip install -e .
   - pip install ."[tests]"
+  - pip install coverage
+  - pip install codeclimate-test-reporter
+  - pip install pytest-cov
 
 before_script:
-  - py.test -s tests
+  - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+  - chmod +x ./cc-test-reporter
+  - ./cc-test-reporter before-build
 
 script:
+  - py.test -s tests
+  - py.test --cov=tests tests/
+  - coverage xml
   - ./build_docker.sh
-  - ./publish_via_travis.sh
+
+deploy:
+  # Build Docker container and push to Docker Hub
+  provider: script
+  script: bash deploy.sh
+  on:
+    branch: develop4
+    
+after_script:
+  - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
 
 services:
   - docker
 
 env:
   global:
+    - CC_TEST_REPORTER_ID=$TEST_REPORTER_ID
+    - CODECLIMATE_REPO_TOKEN=[token]
     - BUILD_TAG=$TRAVIS_TAG
     - secure: "baz4o5dPTHBnQ7lLq4uhSPwduSWkErr8v5d/TKJSTegzgh4TjIGLjdjwho07LjS76bDAnd96odTf5GQEm90oMh48vJowP1TzvDdzqkWRbr9j12SY78RMAKRA+v2ZuhA/ePpomFNcJ2R+3Cppezc5W3mXEMsKrkKSHGJL8TyjzJK/gT9OvojuZ4W/QLah7zXRhycihL+DQvHvwbGjzUbtVw4aqUA5R2ETlltAzyU7GCqEnjL4skMrXCoclJd6M8eCCLaZ4wjzWSOkwEcBMGLPUHtCs0+vOGf3oGeRugv2gaMYM70TUR4b6RrmZSkP3UjIA9niSKjySjaWQD7IWr681i39xI4ThQJicO+38C2c4sfQ6p4fTVkYOCOspH5RIC2jZCvLtTaJbl1+0I5eV+AMjmKcbeI4BN8NYl/NOzLtpWxkqaEz0DrtQIoHFD/b6xzsbqxBOkyNbzste2P9myaY3Xsfur8LntZFuT6SzbpV1DbLpoxWvfCcufsF+h9s4Wgd5ghS88TVBCfUcaTaz+g04XdaL+otfABPkLx9eDmGgLCpbGc2LG8qhM+lj1ub31BmroKv61eyQlRTcZeEL84lQ9aFYIjCgdKD14t2jjNkCdo1aVimN6rJjqbp0ju89HFYMDa861Hg6adZ2FNQ68ig4sCCLCZWKGIqFqaKZmL8uIQ="
     - secure: "KOV1gCE4dZc+ujgsj24iPVyUfWBTJAJJB1nRDvQr9TEWuo4cdHM2r06r4jnJ7XX1594RW6PTe628ibOJCitcbXhphGuYG3IiWTbASmwsMla6NwJqc9fbfxwf1uEyHEBDNtf3Bcw1CnEH6eV1EjIelFOeypjY4llD3TVY8W3onyaGrzKKysUJGTaP1WutSN4VH/VNeVUPvQjxnkxS9ocC0Hq2emOiLh4xZE+5k9gE38HmlsOCKtlQVgJaKA3lyi9NFwd0oSlmqFQVqksrqxiQsDTg/EHl5GE7XfA8n6QfN8o8cNKmsL/+ErVNDiC4tMYNhUhv9jH0rnT/+027QhZc5ISQO4jd7SHvInB+gqzPZ5OXZ2jX5FFoblwM9QTqgSOhPfHTs1ta8BaWx4q3GgRYZSLbmI/lWMXI5llw/z9U0HTzGu2uQ5pS5S+T4IVz/kkg1cFiAT+cBqVZ62Q6B1ITA4gs3PEdQudyXE7y7lIN8riaR6uUwENDlo9mwk9R58+PSkKNgMD2jVv19AELjK3JGiItLi1SnvOAfjFv1aan+LHYmNWH1EeVPccxXheiocnKBuZd7uPN0SqdmrGAT+W5wKjJEHF/MNwY/7WZSDGOrgW33jgCiCE82xyTrKxueT1auH7BJomVYJ3mkvIM2+m6smi73Xw18Ud+cmegmGbqGyk="
+

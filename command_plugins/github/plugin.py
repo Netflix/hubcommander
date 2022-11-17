@@ -149,6 +149,13 @@ class GitHubPlugin(BotCommander):
                 "user_data_required": True,
                 "help": "Sets the Topics for a GitHub repo",
                 "enabled": True
+            },
+            "!ArchiveRepo": {
+                "command": "!ArchiveRepo",
+                "func": self.archive_repo_command,
+                "user_data_required": True,
+                "help": "Archive a GitHub repository.",
+                "enabled": True
             }
         }
         self.token = None
@@ -1040,6 +1047,46 @@ class GitHubPlugin(BotCommander):
                              "to the repo: {repo}".format(user_data["name"], topics=", ".join(topic_list), repo=repo),
                              markdown=True, thread=data["ts"])
 
+    @hubcommander_command(
+        name="!ArchiveRepo",
+        usage="!ArchiveRepo <OrgThatContainsRepo> <RepoToArchive>",
+        description="This will archive a repo from a GitHub organization.",
+        required=[
+            dict(name="org", properties=dict(type=str, help="The organization that contains the repo."),
+                 validation_func=lookup_real_org, validation_func_kwargs={}),
+            dict(name="repo", properties=dict(type=str, help="The name of the repo to archive."),
+                 validation_func=extract_repo_name, validation_func_kwargs={}),
+        ],
+        optional=[]
+    )
+    @auth()
+    @repo_must_exist()
+    def archive_repo_command(self, data, user_data, org, repo):
+        """
+        Archives a repository.
+
+        Command is as follows: !ArchiveRepo <organization> <repo>
+        :param repo:
+        :param org:
+        :param user_data:
+        :param data:
+        :return:
+        """
+        # Output that we are doing work:
+        send_info(data["channel"], "@{}: Working, Please wait...".format(user_data["name"]), thread=data["ts"])
+
+        # Archive the repository:
+        try:
+            self.archive_repo(repo, org)
+        except Exception as e:
+            send_error(data["channel"],
+                       "@{}: I encountered a problem:\n\n{}".format(user_data["name"], e), thread=data["ts"])
+            return
+
+        # All done!
+        message = "@{}: The repo: {} has been archived.\n".format(user_data["name"], repo)
+        send_success(data["channel"], message, thread=data["ts"])
+
     def check_if_repo_exists(self, data, user_data, reponame, real_org):
         try:
             result = self.check_gh_for_existing_repo(reponame, real_org)
@@ -1126,6 +1173,27 @@ class GitHubPlugin(BotCommander):
                        "@{}: Problem encountered while parsing the response.\n"
                        "Here are the details: {}".format(user_data["name"], str(e)), thread=data["ts"])
             return False
+
+    def archive_repo(self, repo, org):
+        headers = {
+            'Authorization': 'token {}'.format(self.token),
+            'Accept': GITHUB_VERSION
+        }
+        api_part = 'repos/{org}/{repo}'.format(repo=repo, org=org)
+
+        data = {'archived': True}
+
+        response = requests.patch(
+            '{}{}'.format(GITHUB_URL, api_part),
+            headers=headers,
+            data=json.dumps(data),
+            timeout=10
+        )
+
+        if response.status_code != 200:
+            message = 'An error was encountered communicating with GitHub: Status Code: {}' \
+                .format(response.status_code)
+            raise requests.exceptions.RequestException(message)
 
     def get_repo_deploy_keys(self, data, user_data, reponame, real_org, **kwargs):
         try:

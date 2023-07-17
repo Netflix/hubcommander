@@ -108,6 +108,9 @@ def hubcommander_command(**kwargs):
                                              description=kwargs["description"],
                                              usage=kwargs["usage"])
 
+            # Add the optional auth_token parameter to all commands
+            parser.add_argument("--auth_token", type=str, help="Optional authentication token that can be specified ")
+
             # Dynamically add in the required and optional arguments:
             arg_type = ["required", "optional"]
             for at in arg_type:
@@ -166,6 +169,10 @@ def hubcommander_command(**kwargs):
 
             # Run the next function:
             data["command_name"] = kwargs["name"]
+            # If an auth token was specified, move it from the args array to the data dict, visible to auth plugins
+            if 'auth_token' in args:
+                data['auth_token'] = args['auth_token']
+                del args['auth_token']
             return func(plugin_obj, data, user_data, **args)
 
         return decorated_command

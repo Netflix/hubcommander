@@ -382,3 +382,47 @@ def test_cleanup(user_data, slack_client):
 
     data = dict(text="!TestCommand \"<all cleaned up!>>][\" \"<not all[} cleaned up}\"")
     tc.pass_command(data, user_data)
+
+def test_auth_token_passed_through(user_data, slack_client):
+    class TestCommands:
+        def __init__(self):
+            pass
+
+        @hubcommander_command(
+            name="!TestCommand",
+            usage="!TestCommand <arg1>",
+            description="This is a test command to make sure that undesirable characters are cleaned up.",
+            required=[
+                dict(name="arg1", properties=dict(type=str, help="some arg")),
+            ],
+        )
+        def pass_command(self, data, user_data, arg1):
+            assert self
+            assert data
+            assert data['auth_token'] == 'the_auth_token'
+            assert arg1 == "myval"
+
+        @hubcommander_command(
+            name="!OtherCommand",
+            usage="!OtherCommand <arg1>",
+            description="This is a test command to make sure that auth_token is optional.",
+            required=[
+                dict(name="arg1", properties=dict(type=str, help="some arg")),
+            ],
+        )
+        def noauth_token_command(self, data, user_data, arg1):
+            assert self
+            assert data
+            assert data['auth_token'] is None
+            assert arg1 == "myval"
+
+    tc = TestCommands()
+
+    data = dict(text="!TestCommand myval --auth_token=the_auth_token")
+    tc.pass_command(data, user_data)
+
+    data = dict(text="!TestCommand --auth_token=the_auth_token myval")
+    tc.pass_command(data, user_data)
+
+    data = dict(text="!OtherCommand myval")
+    tc.noauth_token_command(data, user_data)

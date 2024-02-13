@@ -57,20 +57,20 @@ echo "[+] Completed extracted RTM bot"
 # Create the virtualenvs:
 echo "[-->] Creating venv in ${RTM_PATH}..."
 
-if command -v pyvenv >/dev/null 2>&1 ; then
+if command -v python3 >/dev/null 2>&1 ; then
 
-  PYTHON_VERSION=`python --version 2>&1 | grep -i continuum`
+  PYTHON_VERSION=`python3 --version 2>&1 | grep -i continuum`
   if [[ $PYTHON_VERSION != "" ]]; then
       echo "[+] Conda installation detected ..."
-      pyvenv venv --without-pip
+      python3 -m venv venv --without-pip
       source venv/bin/activate
 
       echo "[-->] Installing PIP in venv..."
       curl -O https://bootstrap.pypa.io/get-pip.py
-      python get-pip.py
+      python3 get-pip.py
       echo "[+] PIP Installed"
   else
-      pyvenv venv
+      python3 -m venv venv
       source venv/bin/activate
   fi
 
@@ -112,6 +112,6 @@ if command -v pyvenv >/dev/null 2>&1 ; then
   echo
   echo "DONE!"
 else
-  echo "pyvenv is not installed. Install pyvenv to continue. Aborting."
+  echo "python3 is not installed. Install python3 to continue. Aborting."
   exit 1;
 fi
